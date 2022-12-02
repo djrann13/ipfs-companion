@@ -1,25 +1,26 @@
 'use strict'
 /* eslint-env browser */
 
-const debug = require('debug')
+import Pqueue from 'p-queue'
+
+import debug from 'debug'
+import IsIpfs from 'is-ipfs'
+import LRU from 'lru-cache'
+import { offlinePeerCount } from './state.js'
+import { ipfsContentPath, sameGateway, pathAtHttpGateway } from './ipfs-path.js'
+
 const log = debug('ipfs-companion:dnslink')
 log.error = debug('ipfs-companion:dnslink:error')
 
-const IsIpfs = require('is-ipfs')
-const LRU = require('lru-cache')
-const { default: PQueue } = require('p-queue')
-const { offlinePeerCount } = require('./state')
-const { ipfsContentPath, sameGateway, pathAtHttpGateway } = require('./ipfs-path')
-
-module.exports = function createDnslinkResolver (getState) {
+export default function createDnslinkResolver (getState) {
   // DNSLink lookup result cache
-  const cacheOptions = { max: 1000, maxAge: 1000 * 60 * 60 * 12 }
+  const cacheOptions = { max: 1000, ttl: 1000 * 60 * 60 * 12 }
   const cache = new LRU(cacheOptions)
   // upper bound for concurrent background lookups done by resolve(url)
-  const lookupQueue = new PQueue({ concurrency: 4 })
+  const lookupQueue = new Pqueue({ concurrency: 4 })
   // preload of DNSLink data
   const preloadUrlCache = new LRU(cacheOptions)
-  const preloadQueue = new PQueue({ concurrency: 4 })
+  const preloadQueue = new Pqueue({ concurrency: 4 })
 
   const dnslinkResolver = {
 
@@ -32,7 +33,7 @@ module.exports = function createDnslinkResolver (getState) {
     },
 
     clearCache () {
-      cache.reset()
+      cache.clear()
     },
 
     cachedDnslink (fqdn) {
@@ -59,7 +60,7 @@ module.exports = function createDnslinkResolver (getState) {
         // to load the correct path from IPFS
         // - https://github.com/ipfs/ipfs-companion/issues/298
         const ipnsPath = dnslinkResolver.convertToIpnsPath(url)
-        const gateway = state.localGwAvailable ? state.gwURLString : state.pubGwURLString
+        const gateway = state.redirect && state.localGwAvailable ? state.gwURLString : state.pubGwURLString
         return pathAtHttpGateway(ipnsPath, gateway)
       }
     },
@@ -80,7 +81,6 @@ module.exports = function createDnslinkResolver (getState) {
           }
         } catch (error) {
           log.error(`error in readAndCacheDnslink for '${fqdn}'`, error)
-          console.error(error)
         }
       } else {
         // Most of the time we will hit cache, which makes below line is too noisy
@@ -123,7 +123,6 @@ module.exports = function createDnslinkResolver (getState) {
     readDnslinkFromTxtRecord (fqdn) {
       const state = getState()
       let apiProvider
-      // TODO: fix DNS resolver for ipfsNodeType='embedded:chromesockets', for now use ipfs.io
       if (!state.ipfsNodeType.startsWith('embedded') && state.peerCount !== offlinePeerCount) {
         // Use gw port so it can be a GET:
         // Chromium does not execute onBeforeSendHeaders for synchronous calls
@@ -139,7 +138,7 @@ module.exports = function createDnslinkResolver (getState) {
       // js-ipfs-api does not provide method for fetching this
       // TODO: revisit after https://github.com/ipfs/js-ipfs-api/issues/501 is addressed
       // TODO: consider worst-case-scenario fallback to https://developers.google.com/speed/public-dns/docs/dns-over-https
-      const apiCall = `${apiProvider}api/v0/dns/${fqdn}?r=true`
+      const apiCall = `${apiProvider}api/v0/name/resolve/${fqdn}?r=false`
       const xhr = new XMLHttpRequest() // older XHR API us used because window.fetch appends Origin which causes error 403 in go-ipfs
       // synchronous mode with small timeout
       // (it is okay, because we do it only once, then it is cached and read via readAndCacheDnslink)

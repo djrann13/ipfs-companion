@@ -1,46 +1,62 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const html = require('choo/html')
-const logo = require('../logo')
-const powerIcon = require('./power-icon')
-const optionsIcon = require('./options-icon')
-const gatewayStatus = require('./gateway-status')
+import html from 'choo/html/index.js'
+import logo from '../logo.js'
+import versionUpdateIcon from './version-update-icon.js'
+import powerIcon from './power-icon.js'
+import optionsIcon from './options-icon.js'
+import ipfsVersion from './ipfs-version.js'
+import gatewayStatus from './gateway-status.js'
 
-module.exports = function header (props) {
-  const { ipfsNodeType, active, onToggleActive, onOpenPrefs, isIpfsOnline, onOpenWelcomePage } = props
+export default function header (props) {
+  const { ipfsNodeType, active, onToggleActive, onOpenPrefs, onOpenReleaseNotes, isIpfsOnline, onOpenWelcomePage, newVersion } = props
   return html`
-    <div class="pt3 pb1 br2 br--top ba bw1 b--white" style="background-image: url('../../../images/stars.png'), linear-gradient(to bottom, #041727 0%,#043b55 100%); background-size: 100%; background-repeat: repeat;">
-      <div class="no-user-select">
+    <div>
+      <div class="pt3 pr3 pb2 pl3 no-user-select flex justify-between items-center">
+        <div class="inline-flex items-center">
         <div
           onclick=${onOpenWelcomePage}
-          class="tc mb2 transition-all pointer ${active ? '' : 'o-40'}"
+          class="transition-all pointer ${active ? '' : 'o-40'}"
           style="${active ? '' : 'filter: blur( .15em )'}">
   ${logo({
-    size: 52,
+    size: 54,
     path: '../../../icons',
     ipfsNodeType,
     isIpfsOnline: (active && isIpfsOnline)
   })}
         </div>
-        <h1 class="mb1 montserrat f5 mt2 tc white normal ${active ? '' : 'o-40'}">
-          ${browser.i18n.getMessage('panel_headerIpfsNodeIconLabel')}
-        </h1>
-        <div class="tc ma0 pa0">
-  ${powerIcon({
-    active,
-    title: 'panel_headerActiveToggleTitle',
-    action: onToggleActive
-  })}
-  ${optionsIcon({
-    active,
-    title: 'panel_openPreferences',
-    action: onOpenPrefs
-  })}
+          <div class="flex flex-column ml2 white ${active ? '' : 'o-40'}">
+            <div>
+              <h1 class="inter fw6 f2 ttu ma0 pa0">
+                IPFS
+              </h1>
+            </div>
+            <span class="${active ? '' : 'o-0'}">${ipfsVersion(props)}</span>
+          </div>
+        </div>
+        <div class="tr ma0 pb1">
+          ${newVersion
+          ? versionUpdateIcon({
+            newVersion,
+            active,
+            title: 'panel_headerNewVersionTitle',
+            action: onOpenReleaseNotes
+          })
+          : null}
+          ${powerIcon({
+            active,
+            title: 'panel_headerActiveToggleTitle',
+            action: onToggleActive
+          })}
+          ${optionsIcon({
+            active,
+            title: 'panel_openPreferences',
+            action: onOpenPrefs
+          })}
         </div>
       </div>
-      <div class=" ${active ? '' : 'o-40'}">
+      <div class="pb1 ${active ? '' : 'o-40'}">
         ${gatewayStatus(props)}
       </div>
     </div>

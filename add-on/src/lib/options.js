@@ -1,20 +1,18 @@
 'use strict'
 
-const isFQDN = require('is-fqdn')
-const { hasChromeSocketsForTcp } = require('./runtime-checks')
+import { isIPv4, isIPv6 } from 'is-ip'
+import isFQDN from 'is-fqdn'
 
-// TODO: enable by default when embedded node is performant enough
-const DEFAULT_TO_EMBEDDED_GATEWAY = false && hasChromeSocketsForTcp()
-
-exports.optionDefaults = Object.freeze({
+export const optionDefaults = Object.freeze({
   active: true, // global ON/OFF switch, overrides everything else
-  ipfsNodeType: buildDefaultIpfsNodeType(),
+  ipfsNodeType: 'external',
   ipfsNodeConfig: buildDefaultIpfsNodeConfig(),
   publicGatewayUrl: 'https://ipfs.io',
   publicSubdomainGatewayUrl: 'https://dweb.link',
   useCustomGateway: true,
   useSubdomains: true,
-  noIntegrationsHostnames: [],
+  enabledOn: [], // hostnames with explicit integration opt-in
+  disabledOn: [], // hostnames with explicit integration opt-out
   automaticMode: true,
   linkify: false,
   dnslinkPolicy: 'best-effort',
@@ -25,31 +23,16 @@ exports.optionDefaults = Object.freeze({
   preloadAtPublicGateway: true,
   catchUnhandledProtocols: true,
   displayNotifications: true,
-  customGatewayUrl: buildCustomGatewayUrl(),
-  ipfsApiUrl: buildIpfsApiUrl(),
+  displayReleaseNotes: false,
+  customGatewayUrl: 'http://localhost:8080',
+  ipfsApiUrl: 'http://127.0.0.1:5001',
   ipfsApiPollMs: 3000,
-  ipfsProxy: true, // window.ipfs
   logNamespaces: 'jsipfs*,ipfs*,libp2p:mdns*,libp2p-delegated*,-*:ipns*,-ipfs:preload*,-ipfs-http-client:request*,-ipfs:http-api*',
   importDir: '/ipfs-companion-imports/%Y-%M-%D_%h%m%s/',
+  useLatestWebUI: false,
+  dismissedUpdate: null,
   openViaWebUI: true
 })
-
-function buildCustomGatewayUrl () {
-  // TODO: make more robust (sync with buildDefaultIpfsNodeConfig)
-  const port = DEFAULT_TO_EMBEDDED_GATEWAY ? 9091 : 8080
-  return `http://localhost:${port}`
-}
-
-function buildIpfsApiUrl () {
-  // TODO: make more robust (sync with buildDefaultIpfsNodeConfig)
-  const port = DEFAULT_TO_EMBEDDED_GATEWAY ? 5003 : 5001
-  return `http://127.0.0.1:${port}`
-}
-
-function buildDefaultIpfsNodeType () {
-  // Right now Brave is the only vendor giving us access to chrome.sockets
-  return DEFAULT_TO_EMBEDDED_GATEWAY ? 'embedded:chromesockets' : 'external'
-}
 
 function buildDefaultIpfsNodeConfig () {
   return JSON.stringify({
@@ -62,7 +45,7 @@ function buildDefaultIpfsNodeConfig () {
 }
 
 // `storage` should be a browser.storage.local or similar
-exports.storeMissingOptions = async (read, defaults, storage) => {
+export async function storeMissingOptions (read, defaults, storage) {
   const requiredKeys = Object.keys(defaults)
   const changes = {}
   const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
@@ -81,7 +64,7 @@ exports.storeMissingOptions = async (read, defaults, storage) => {
 }
 
 // safeURL produces URL object with optional normalizations
-function safeURL (url, opts) {
+export function safeURL (url, opts) {
   opts = opts || { useLocalhostName: true }
   if (typeof url === 'string') {
     url = new URL(url)
@@ -107,28 +90,48 @@ function safeURL (url, opts) {
 }
 
 // Return string without trailing slash
-function guiURLString (url, opts) {
+export function guiURLString (url, opts) {
   return safeURL(url, opts).toString().replace(/\/$/, '')
 }
-exports.safeURL = safeURL
-exports.guiURLString = guiURLString
+
+// ensure value is a valid URL.hostname (FQDN || ipv4 || ipv6 WITH brackets)
+export function isHostname (x) {
+  if (isFQDN(x) || isIPv4(x)) {
+    return true
+  }
+
+  const match = x.match(/^\[(.*)\]$/)
+
+  if (match == null) {
+    return false
+  }
+
+  return isIPv6(match[1])
+}
 
 // convert JS array to multiline textarea
 function hostArrayCleanup (array) {
   array = array.map(host => host.trim().toLowerCase())
+  // normalize/extract hostnames (just domain/ip, drop ports etc), if provided
+  array = array.map(x => {
+    try {
+      if (isIPv6(x)) x = `[${x}]`
+      return new URL(`http://${x}`).hostname
+    } catch (_) {
+      return undefined
+    }
+  })
+  array = array.filter(Boolean).filter(isHostname)
   array = [...new Set(array)] // dedup
-  array = array.filter(Boolean).filter(isFQDN)
   array.sort()
   return array
 }
-function hostArrayToText (array) {
+export function hostArrayToText (array) {
   return hostArrayCleanup(array).join('\n')
 }
-function hostTextToArray (text) {
+export function hostTextToArray (text) {
   return hostArrayCleanup(text.split('\n'))
 }
-exports.hostArrayToText = hostArrayToText
-exports.hostTextToArray = hostTextToArray
 
 function localhostIpUrl (url) {
   if (typeof url === 'string') {
@@ -143,7 +146,10 @@ function localhostNameUrl (url) {
   return url.hostname.toLowerCase() === 'localhost'
 }
 
-exports.migrateOptions = async (storage) => {
+export async function migrateOptions (storage, debug) {
+  const log = debug('ipfs-companion:migrations')
+  log.error = debug('ipfs-companion:migrations:error')
+
   // <= v2.4.4
   // DNSLINK: convert old on/off 'dnslink' flag to text-based 'dnslinkPolicy'
   const { dnslink } = await storage.get('dnslink')
@@ -155,16 +161,7 @@ exports.migrateOptions = async (storage) => {
     })
     await storage.remove('dnslink')
   }
-  // ~ v2.8.x + Brave
-  // Upgrade js-ipfs to js-ipfs + chrome.sockets
-  const { ipfsNodeType } = await storage.get('ipfsNodeType')
-  if (ipfsNodeType === 'embedded' && hasChromeSocketsForTcp()) {
-    // migrating ipfsNodeType to embedded:chromesockets
-    await storage.set({
-      ipfsNodeType: 'embedded:chromesockets',
-      ipfsNodeConfig: buildDefaultIpfsNodeConfig()
-    })
-  }
+
   // ~ v2.9.x: migrating noRedirectHostnames → noIntegrationsHostnames
   // https://github.com/ipfs-shipyard/ipfs-companion/pull/830
   const { noRedirectHostnames } = await storage.get('noRedirectHostnames')
@@ -172,6 +169,7 @@ exports.migrateOptions = async (storage) => {
     await storage.set({ noIntegrationsHostnames: noRedirectHostnames })
     await storage.remove('noRedirectHostnames')
   }
+
   // ~v2.11: subdomain proxy at *.ipfs.localhost
   // migrate old default 127.0.0.1 to localhost hostname
   const { customGatewayUrl: gwUrl } = await storage.get('customGatewayUrl')
@@ -182,4 +180,36 @@ exports.migrateOptions = async (storage) => {
       await storage.set({ customGatewayUrl: newUrl })
     }
   }
+
+  { // ~v2.15.x: migrating noIntregrationsHostnames → disabledOn
+    const { disabledOn, noIntegrationsHostnames } = await storage.get(['disabledOn', 'noIntegrationsHostnames'])
+    if (noIntegrationsHostnames) {
+      log('migrating noIntregrationsHostnames → disabledOn')
+      await storage.set({ disabledOn: disabledOn.concat(noIntegrationsHostnames) })
+      await storage.remove('noIntegrationsHostnames')
+    }
+  }
+
+  { // ~v2.15.x: opt-out some hostnames if user does not have excplicit rule already
+    const { enabledOn, disabledOn } = await storage.get(['enabledOn', 'disabledOn'])
+    for (const fqdn of [
+      'proto.school', //  https://github.com/ipfs-shipyard/ipfs-companion/issues/921
+      'app.fleek.co' // https://github.com/ipfs-shipyard/ipfs-companion/pull/929#pullrequestreview-509501401
+    ]) {
+      if (enabledOn.includes(fqdn) || disabledOn.includes(fqdn)) continue
+      log(`adding '${fqdn}' to 'disabledOn' list`)
+      disabledOn.push(fqdn)
+      await storage.set({ disabledOn })
+    }
+  }
+
+  { // ~v2.15.1: change displayReleaseNotes opt-out flag to opt-in
+    const { displayReleaseNotes, dismissedUpdate } = await storage.get(['displayReleaseNotes', 'dismissedUpdate'])
+    if (!dismissedUpdate && displayReleaseNotes) {
+      log('converting displayReleaseNotes from out-out to opt-in')
+      await storage.set({ displayReleaseNotes: false })
+    }
+  }
+
+  // TODO: refactor this, so migrations only run once (like https://github.com/sindresorhus/electron-store#migrations)
 }

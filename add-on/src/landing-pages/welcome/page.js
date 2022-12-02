@@ -1,8 +1,13 @@
 'use strict'
 
-const html = require('choo/html')
-const logo = require('../../popup/logo')
-const { renderTranslatedLinks, renderTranslatedSpans } = require('../../utils/i18n')
+import browser from 'webextension-polyfill'
+import html from 'choo/html/index.js'
+import logo from '../../popup/logo.js'
+import { renderTranslatedLinks, renderTranslatedSpans } from '../../utils/i18n.js'
+
+// Brave detection
+import { brave } from '../../../src/lib/ipfs-client/brave.js'
+import { optionsPage } from '../../../src/lib/constants.js'
 
 // Assets
 const libp2pLogo = '../../../images/libp2p.svg'
@@ -14,7 +19,7 @@ const colorIpfsLogo = '#57cbd0'
 const colorWhite = '#ffffff'
 const colorYellow = '#f39021'
 
-function createWelcomePage (i18n) {
+export default function createWelcomePage (i18n) {
   return function welcomePage (state, emit) {
     const { isIpfsOnline, peerCount } = state
     const openWebUi = (page) => () => emit('openWebUi', page)
@@ -95,16 +100,22 @@ const renderInstallSteps = (i18n, isIpfsOnline) => {
     </svg>
   `
 
+  const optionsUrl = browser.runtime.getURL(optionsPage)
   return html`
     <div class="w-80 mt0 flex flex-column transition-all ${stateUnknown && 'state-unknown'}">
       <div class="mb4 flex flex-column justify-center items-center">
         ${nodeOffSvg()}
         <p class="mt0 mb0 f3 tc">${i18n.getMessage('page_landingWelcome_installSteps_notRunning_title')}</p>
       </div>
+      ${brave
+        ? html`
+          <p class="mb2 aqua b f4 lh-title">${i18n.getMessage('page_landingWelcome_installSteps_brave_title')}</p>
+          <p class="${copyClass}">${renderTranslatedLinks('page_landingWelcome_installSteps_brave_install', [optionsUrl], `target="_blank" class="${anchorClass}"`)}</p>`
+        : null}
       <p class="mb2 aqua b f4 lh-title">${i18n.getMessage('page_landingWelcome_installSteps_desktop_title')}</p>
       <p class="${copyClass}">${renderTranslatedLinks('page_landingWelcome_installSteps_desktop_install', ['https://github.com/ipfs-shipyard/ipfs-desktop#ipfs-desktop'], `target="_blank" class="${anchorClass}"`)}</p>
       <p class="mb2 aqua b f4 lh-title">${i18n.getMessage('page_landingWelcome_installSteps_cli_title')}</p>
-      <p class="${copyClass}">${renderTranslatedLinks('page_landingWelcome_installSteps_cli_install', ['https://docs.ipfs.io/how-to/command-line-quick-start/'], `target="_blank" class="${anchorClass}"`)}</p>
+      <p class="${copyClass}">${renderTranslatedLinks('page_landingWelcome_installSteps_cli_install', ['https://docs.ipfs.tech/how-to/command-line-quick-start/'], `target="_blank" class="${anchorClass}"`)}</p>
     </div>
   `
 }
@@ -123,27 +134,27 @@ const renderResources = (i18n) => {
 
       <p class="${labelClass}">${i18n.getMessage('page_landingWelcome_resources_title_new_ipfs')}</p>
       <ul class="${copyClass}">
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_companion_features', ['https://github.com/ipfs-shipyard/ipfs-companion#features'], `target="_blank" class="${anchorClass}"`)}</li>
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_concepts', ['https://docs.ipfs.io/concepts/how-ipfs-works/'], `target="_blank" class="${anchorClass}"`)}</li>
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_docs', ['https://docs.ipfs.io'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_companion_features', ['https://github.com/ipfs-shipyard/ipfs-companion#ipfs-companion-features'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_concepts', ['https://docs.ipfs.tech/concepts/how-ipfs-works/'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_new_ipfs_docs', ['https://docs.ipfs.tech'], `target="_blank" class="${anchorClass}"`)}</li>
       </ul>
 
       <p class="${labelClass}">${i18n.getMessage('page_landingWelcome_resources_title_build')}</p>
       <ul class="${copyClass}">
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_build_tutorials', ['https://docs.ipfs.io/how-to/'], `target="_blank" class="${anchorClass}"`)}</li>
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_build_examples', ['https://awesome.ipfs.io'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_build_tutorials', ['https://docs.ipfs.tech/how-to/'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_build_examples', ['https://awesome.ipfs.tech'], `target="_blank" class="${anchorClass}"`)}</li>
       </ul>
 
       <p class="${labelClass}">${i18n.getMessage('page_landingWelcome_resources_title_get_help')}</p>
       <ul class="${copyClass}">
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_get_help', ['https://discuss.ipfs.io'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_get_help', ['https://discuss.ipfs.tech'], `target="_blank" class="${anchorClass}"`)}</li>
       </ul>
 
       <p class="${labelClass}">${i18n.getMessage('page_landingWelcome_resources_title_community')}</p>
       <ul class="${copyClass}">
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_community_contribute', ['https://docs.ipfs.io/community/contribute/ways-to-contribute/'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_community_contribute', ['https://docs.ipfs.tech/community/contribute/ways-to-contribute/'], `target="_blank" class="${anchorClass}"`)}</li>
         <li>${renderTranslatedLinks('page_landingWelcome_resources_community_translate', ['https://www.transifex.com/ipfs/public/'], `target="_blank" class="${anchorClass}"`)}</li>
-        <li>${renderTranslatedLinks('page_landingWelcome_resources_community_resources', ['https://docs.ipfs.io/community/'], `target="_blank" class="${anchorClass}"`)}</li>
+        <li>${renderTranslatedLinks('page_landingWelcome_resources_community_resources', ['https://docs.ipfs.tech/community/'], `target="_blank" class="${anchorClass}"`)}</li>
     </ul>
     </div>
   `
@@ -216,5 +227,3 @@ const renderProjects = (i18n) => {
     </div>
   `
 }
-
-module.exports = createWelcomePage

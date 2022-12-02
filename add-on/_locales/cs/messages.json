@@ -7,6 +7,10 @@
     "message": "IPFS Companion",
     "description": "A label for IPFS icon (panel_headerIpfsNodeIconLabel)"
   },
+  "panel_headerNewVersionTitle": {
+    "message": "IPFS Companion byl aktualizován na novou verzi! Kliknutím získáte podrobnosti.",
+    "description": "A label in the Browser Action pop-up for icon appearing on first load of new version (panel_headerNewVersionTitle)"
+  },
   "panel_headerActiveToggleTitle": {
     "message": "Zapnout/vypnout IPFS integraci",
     "description": "A label for an embedded IPFS node (panel_headerActiveToggleTitle)"
@@ -19,13 +23,25 @@
     "message": "Brána",
     "description": "A label in Node status section of Browser Action pop-up (panel_statusGatewayAddress)"
   },
+  "panel_statusGatewayAddressTitle": {
+    "message": "Adresa URL veřejné nebo místní brány, kterou používáte k načítání obsahu (změňte ji v předvolbách).",
+    "description": "A label in Node status section of Browser Action pop-up (panel_statusGatewayAddressTitle)"
+  },
   "panel_statusApiAddress": {
     "message": "API",
     "description": "A label in Node status section of Browser Action pop-up (panel_statusApiAddress)"
   },
+  "panel_statusApiAddressTitle": {
+    "message": "Adresa URL rozhraní API vašeho místního uzlu",
+    "description": "A label in Node status section of Browser Action pop-up (panel_statusApiAddressTitle)"
+  },
   "panel_statusGatewayVersion": {
     "message": "verze",
     "description": "A label in Node status section of Browser Action pop-up (panel_statusGatewayVersion)"
+  },
+  "panel_statusGatewayVersionTitle": {
+    "message": "Verze IPFS, kterou váš místní uzel používá.",
+    "description": "A label in Node status section of Browser Action pop-up (panel_statusGatewayVersionTitle)"
   },
   "panel_statusSwarmPeers": {
     "message": "Uzly",
@@ -36,60 +52,88 @@
     "description": "A label tooltip in Node status section of Browser Action pop-up (panel_statusSwarmPeersTitle)"
   },
   "panel_quickImport": {
-    "message": "Sdílejte soubory skrze IPFS",
+    "message": "Import",
     "description": "A menu item in Browser Action pop-up (panel_quickImport)"
   },
+  "panel_quickImportTooltip": {
+    "message": "Importovat soubory do IPFS a zkopírovat veřejně sdílený odkaz do schránky.",
+    "description": "A menu item tooltip in Browser Action pop-up (panel_quickImportTooltip)"
+  },
   "panel_openWebui": {
-    "message": "Otevřít Web UI",
+    "message": "Můj Uzel",
     "description": "A menu item in Browser Action pop-up (panel_openWebui)"
   },
-  "panel_redirectToggle": {
-    "message": "Přesměrovat na bránu",
-    "description": "A menu item in Browser Action pop-up (panel_redirectToggle)"
-  },
-  "panel_redirectToggleTooltip": {
-    "message": "Klepnutím přepnete všechna přesměrování brány",
-    "description": "A menu item in Browser Action pop-up (panel_redirectToggleTooltip)"
-  },
-  "panel_toolsSectionHeader": {
-    "message": "Nástroje",
-    "description": "A menu item in Browser Action pop-up (panel_toolsSectionHeader)"
+  "panel_openWebuiTooltip": {
+    "message": "Otevřete ovládací prvky uzlu IPFS v prohlížeči.",
+    "description": "A menu item in Browser Action pop-up (panel_openWebuiTooltip)"
   },
   "panel_openPreferences": {
-    "message": "Otevřít nastavení rozšíření",
+    "message": "Otevření předvoleb IPFS Companion",
     "description": "A menu item in Browser Action pop-up (panel_openPreferences)"
   },
   "panel_activeTabSectionHeader": {
-    "message": "Aktivní karta",
+    "message": "Aktuální záložka",
     "description": "A menu item in Browser Action pop-up (panel_activeTabSiteRedirectEnable)"
   },
   "panel_activeTabSiteIntegrationsToggle": {
-    "message": "Povolit na $1",
+    "message": "Povolit pro $1",
     "description": "A menu item in Browser Action pop-up (panel_activeTabSiteIntegrationsToggle)"
   },
   "panel_activeTabSiteIntegrationsToggleTooltip": {
-    "message": "Klepnutím přepnete všechny integrace IPFS na $1",
+    "message": "Povolení/zakázání všech integrací IPFS na $1.",
     "description": "A menu item tooltip in Browser Action pop-up (panel_activeTabSiteIntegrationsToggleTooltip)"
   },
-  "panel_pinCurrentIpfsAddress": {
-    "message": "Připnout prostředek IPFS",
-    "description": "A menu item in Browser Action pop-up (panel_pinCurrentIpfsAddress)"
+  "panel_importCurrentIpfsAddress": {
+    "message": "Import do souborů v mém Uzlu",
+    "description": "A menu item in Browser Action pop-up (panel_importCurrentIpfsAddress)"
   },
-  "panel_pinCurrentIpfsAddressTooltip": {
-    "message": "Připnutí CID říkáte vašemu uzlu IPFS, že tato data jsou důležitá a nesmí být zahozena.",
-    "description": "A menu item tooltip in Browser Action pop-up (panel_pinCurrentIpfsAddressTooltip)"
+  "panel_importCurrentIpfsAddressTooltip": {
+    "message": "Importujte prostředky IPFS této karty do svých souborů, abyste měli trvalou místní kopii, která bude k dispozici offline a nikdy nebude vyhozena.",
+    "description": "A menu item tooltip in Browser Action pop-up (panel_importCurrentIpfsAddressTooltip)"
+  },
+  "panelCopy_currentIpnsAddress": {
+  "message": "Kopírovat IPNS cestu",
+  "description": "A menu item in Browser Action pop-up and right-click context menu (panelCopy_currentIpnsAddress)"
+  },
+  "panelCopy_currentIpnsAddressTooltip": {
+    "message": "Pomocí této cesty k obsahu se pomocí nástrojů a bran IPFS dostanete k poslední aktualizované verzi obsahu této karty.",
+    "description": "A menu item tooltip in Browser Action pop-up (panelCopy_currentIpnsAddressTooltip)"
   },
   "panelCopy_currentIpfsAddress": {
-    "message": "Zkopírovat cestu obsahu IPFS",
+    "message": "Zkopírovat IPFS cestu",
     "description": "A menu item in Browser Action pop-up and right-click context menu (panelCopy_currentIpfsAddress)"
+  },
+  "panelCopy_currentIpfsAddressTooltip": {
+    "message": "Tuto cestu k obsahu použijte s nástroji a branami IPFS, abyste se dostali k obsahu na této kartě v tomto okamžiku. Tento snímek se nezmění, i když se obsah později změní.",
+    "description": "A menu item tooltip in Browser Action pop-up (panelCopy_currentIpfsAddressTooltip)"
   },
   "panelCopy_copyRawCid": {
     "message": "Zkopírovat CID",
     "description": "A menu item in Browser Action pop-up and right-click context menu (panelCopy_copyRawCid)"
   },
+  "panelCopy_copyRawCidTooltip": {
+    "message": "Jedinečný identifikátor obsahu IPFS pro tuto kartu v daném okamžiku. Pokud se obsah později změní, změní se i identifikátor CID.",
+    "description": "A menu item tooltip in Browser Action pop-up (panelCopy_copyRawCidTooltip)"
+  },
+  "panelCopy_notReadyHint": {
+    "message": "(čeká se na data DAG)",
+    "description": "A hint in menu item in Browser Action pop-up to indicate value is still being resolved (panelCopy_notReadyHint)"
+  },
   "panel_copyCurrentPublicGwUrl": {
-    "message": "Kopírovat odkaz, který lze sdílet",
+    "message": "Kopírovat sdílený odkaz",
     "description": "A menu item in Browser Action pop-up and right-click context menu (panel_copyCurrentPublicGwUrl)"
+  },
+  "panel_copyCurrentPublicGwUrlTooltip": {
+    "message": "Sdílený odkaz na tuto kartu, který funguje pro každého, i když nepoužívá systém IPFS.",
+    "description": "A menu item tooltip in Browser Action pop-up (panel_copyCurrentPublicGwUrlTooltip)"
+  },
+  "panel_copyCurrentPermalink": {
+    "message": "Kopírování odkazu na Snapshot",
+    "description": "A menu item in Browser Action pop-up (panel_copyCurrentPermalink)"
+  },
+  "panel_copyCurrentPermalinkTooltip": {
+    "message": "Odkaz na Snapshot této karty v tomto okamžiku; nezmění se, ani když se později změní obsah. Tento odkaz funguje pro každého, i když nepoužívá systém IPFS.",
+    "description": "A menu item tooltip in Browser Action pop-up (panel_copyCurrentPermalinkTooltip)"
   },
   "panel_contextMenuViewOnGateway": {
     "message": "Zobrazit na bráně",
@@ -100,11 +144,11 @@
     "description": "A tooltip displayed over Page Action in location bar (pageAction_titleIpfsAtPublicGateway)"
   },
   "pageAction_titleIpfsAtCustomGateway": {
-    "message": "IPFS objekt načten skrze vlastní bránu",
+    "message": "Prostředek IPFS načtený přes místní bránu",
     "description": "A tooltip displayed over Page Action in location bar (pageAction_titleIpfsAtCustomGateway)"
   },
   "pageAction_titleNonIpfs": {
-    "message": "Objekt mimo IPFS",
+    "message": "Non-IPFS zdroj",
     "description": "Default label for icon hidden in Page Action menu (pageAction_titleNonIpfs)"
   },
   "contextMenu_parentImage": {
@@ -144,35 +188,23 @@
     "description": "A title of system notification (notify_addonIssueTitle)"
   },
   "notify_addonIssueMsg": {
-    "message": "Zkontrolujte konzoli prohlížeče pro více informací",
+    "message": "Další podrobnosti naleznete ve vývojářské konzoli prohlížeče.",
     "description": "A message in system notification (notify_addonIssueMsg)"
   },
   "notify_copiedTitle": {
     "message": "Zkopírováno",
     "description": "A title of system notification (notify_copiedTitle)"
   },
-  "notify_pinnedIpfsResourceTitle": {
-    "message": "IPFS objekt byl připnut",
-    "description": "A title of system notification (notify_pinnedIpfsResourceTitle)"
-  },
-  "notify_unpinnedIpfsResourceTitle": {
-    "message": "IPFS objekt byl odepnut",
-    "description": "A title of system notification (notify_unpinnedIpfsResourceTitle)"
-  },
-  "notify_pinErrorTitle": {
-    "message": "Chyba při připínání IPFS objektu",
-    "description": "A title of system notification (notify_pinErrorTitle)"
-  },
-  "notify_unpinErrorTitle": {
-    "message": "Chyba při odepínání IPFS objektu",
-    "description": "A title of system notification (notify_unpinErrorTitle)"
+  "notify_fileCpImportErrorTitle": {
+    "message": "Chyba při importu zdroje IPFS",
+    "description": "A title of system notification (notify_fileCpImportErrorTitle)"
   },
   "notify_apiOnlineTitle": {
     "message": "IPFS API je připojeno",
     "description": "A title of system notification (notify_apiOnlineTitle)"
   },
   "notify_apiOnlineAutomaticModeMsg": {
-    "message": "Automatický mód: přesměrování na vlastní bránu je aktivní",
+    "message": "Automatický režim: Vlastní přesměrování brány je aktivní",
     "description": "A message in system notification (notify_apiOnlineAutomaticModeMsg)"
   },
   "notify_apiOfflineTitle": {
@@ -180,11 +212,11 @@
     "description": "A title of system notification (notify_apiOfflineTitle)"
   },
   "notify_apiOfflineAutomaticModeMsg": {
-    "message": "Automatický mód: veřejná brána bude použítá jako záloha",
+    "message": "Automatický režim: Veřejná brána bude použita jako záložní řešení.",
     "description": "A message in system notification (notify_apiOfflineAutomaticModeMsg)"
   },
   "notify_importErrorTitle": {
-    "message": "Nelze importovat přes IPFS API",
+    "message": "Nelze importovat přes rozhraní IPFS API",
     "description": "A title of system notification (notify_importErrorTitle)"
   },
   "notify_importTrackingProtectionErrorMsg": {
@@ -200,15 +232,19 @@
     "description": "A generic placeholder for error notification (notify_inlineErrorMsg)"
   },
   "notify_startIpfsNodeErrorTitle": {
-    "message": "Nepodařilo se zapnout IPFS uzel",
+    "message": "Nezdařilo se spustit uzel IPFS",
     "description": "System notification title displayed when starting an IPFS node fails (notify_startIpfsNodeErrorTitle)"
   },
   "notify_stopIpfsNodeErrorTitle": {
-    "message": "Nepodařílo se zastavit IPFS uzel",
+    "message": "Nepodařilo se zastavit uzel IPFS",
     "description": "System notification title displayed when stopping an IPFS node fails (notify_stopIpfsNodeErrorTitle)"
   },
+  "option_page_title" : {
+    "message": "Předvolby | IPFS Companion",
+    "description": "Title of the Preferences page (option_page_title)"
+  },
   "option_page_header" : {
-    "message": "Companion Preferences",
+    "message": "Předvolby Companion",
     "description": "Main header on the Preferences screen (option_page_header)"
   },
   "option_legend_readMore" : {
@@ -228,16 +264,16 @@
     "description": "An option title on the Preferences screen (option_ipfsNodeType_title)"
   },
   "option_ipfsNodeType_external_description": {
-    "message": "Externí: přípojit se k uzlu skrze HTTP API",
-    "description": "An option description on the Preferences screen (option_ipfsNodeType_description)"
+    "message": "Nastavením na hodnotu \"Externí\" se připojíte k místnímu uzlu pomocí rozhraní HTTP API.",
+    "description": "An option description on the Preferences screen (option_ipfsNodeType_external_description)"
   },
   "option_ipfsNodeType_embedded_description": {
-    "message": "Embedded: ve vašem prohlížeči spusťte uzel js-ipfs (o jeho omezeních si přečtěte na níže uvedeném odkazu)",
-    "description": "An option description on the Preferences screen (option_ipfsNodeType_description)"
+    "message": "Nastavením na \"Embedded\" spustíte uzel js-ipfs přímo v prohlížeči. (Kliknutím na \"Přečtěte si více\" se dozvíte o omezeních této experimentální funkce.)",
+    "description": "An option description on the Preferences screen (option_ipfsNodeType_embedded_description)"
   },
-  "option_ipfsNodeType_embedded_chromesockets_description": {
-    "message": "Vestavěný do Chrome Sockets: ve vašem prohlížeči spusťte uzel js-ipfs s přístupem k API chrome.sockets (podrobnosti pod odkazem níže)",
-    "description": "An option description on the Preferences screen (option_ipfsNodeType_description)"
+  "option_ipfsNodeType_brave_description": {
+    "message": "Nastavte možnost \"Provided by Brave\", abyste využili nativní podporu IPFS v prohlížeči Brave.",
+    "description": "An option description on the Preferences screen (option_ipfsNodeType_brave_description)"
   },
   "option_ipfsNodeConfig_title": {
     "message": "Konfigurace IPFS uzlu",
@@ -255,32 +291,40 @@
     "message": "Integrovaný",
     "description": "An option on the Preferences screen (option_ipfsNodeType_embedded)"
   },
-  "option_ipfsNodeType_embedded_chromesockets": {
-    "message": "Embedovaný + chrome.sockets",
-    "description": "An option on the Preferences screen (option_ipfsNodeType_embedded_chromesockets)"
+  "option_ipfsNodeType_brave": {
+    "message": "Poskytuje Brave",
+    "description": "An option on the Preferences screen (option_ipfsNodeType_brave)"
+  },
+  "option_hint_url": {
+    "message": "Zadejte adresu URL bez dílčí cesty",
+    "description": "An option description on the Preferences screen (option_hint_url)"
+  },
+  "option_hint_readonly": {
+    "message": "Tato hodnota je určena pouze pro čtení",
+    "description": "An option description on the Preferences screen (option_hint_readonly)"
   },
   "option_header_gateways": {
     "message": "Brány",
     "description": "A section header on the Preferences screen (option_header_gateways)"
   },
   "option_customGatewayUrl_title": {
-    "message": "Vlastní lokální brána",
+    "message": "Místní brána",
     "description": "An option title on the Preferences screen (option_customGatewayUrl_title)"
   },
   "option_customGatewayUrl_description": {
-    "message": "URL preferovaný HTTP2IPFS brány",
+    "message": "Nastavte adresu URL místní brány.",
     "description": "An option description on the Preferences screen (option_customGatewayUrl_description)"
   },
   "option_customGatewayUrl_warning": {
-    "message": "Načtení obsahu IPFS na webech HTTPS bude blokováno, pokud adresa URL vaší brány nezačíná řetězcem “http://127.0.0.1”, “http://[::1]” or “https://”",
+    "message": "Načtení obsahu IPFS na webech HTTPS bude blokováno, pokud adresa URL vaší brány nezačíná řetězcem “http://127.0.0.1”, “http://[::1]” nebo “https://”",
     "description": "A warning on the Preferences screen, displayed when URL does not belong to Secure Context (option_customGatewayUrl_warning)"
   },
   "option_useCustomGateway_title": {
-    "message": "Použít vlastní bránu",
+    "message": "Použití místní brány",
     "description": "An option title on the Preferences screen (option_useCustomGateway_title)"
   },
   "option_useCustomGateway_description": {
-    "message": "Přesměrovat požadavky pro IPFS objekt skrze vlastní bránu",
+    "message": "Přesměrování požadavků na prostředky IPFS na místní bránu.",
     "description": "An option description on the Preferences screen (option_useCustomGateway_description)"
   },
   "option_useSubdomains_title": {
@@ -288,43 +332,51 @@
     "description": "An option title on the Preferences screen (option_useSubdomains_title)"
   },
   "option_useSubdomains_description": {
-    "message": "Izolovejte od sebe kořeny obsahu jejich načtením ze subdomén v *.localhost a vytvořením jedinečného původu pro každý záznam CID, IPNS nebo záznamu DNSLink. Vyžaduje to místní go-ipfs 0.5.0 nebo novější.",
+    "message": "Izolujte kořeny obsahu od sebe tím, že je načtete jako subdomény (na *.localhost) a vytvoříte jedinečný původ pro každý záznam CID, IPNS nebo DNSLink. Vyžaduje go-ipfs 0.5.0 nebo novější verzi v místním uzlu.",
     "description": "An option description on the Preferences screen (option_useSubdomains_description)"
   },
   "option_dnslinkRedirect_title": {
-    "message": "Načíst webové stránky z vlastní brány",
+    "message": "Načtení stránek DNSLink z vlastní brány",
     "description": "An option title on the Preferences screen (option_dnslinkRedirect_title)"
   },
   "option_dnslinkRedirect_description": {
-    "message": "Pokud je povoleno globální přesměrování, bude to zahrnovat webové stránky DNSLink a přesměruje je na příslušné /ipns/{fqdn} cesty na vlastní bráně.",
+    "message": "Pokud je povoleno globální přesměrování brány, zahrňte webové stránky DNSLink jejich přesměrováním na příslušné cesty /ipns/{fqdn} na vlastní bráně.",
     "description": "An option description on the Preferences screen (option_dnslinkRedirect_description)"
   },
   "option_dnslinkDataPreload_title": {
-    "message": "Předběžné načítání navštívených stránek",
+    "message": "Přednačtení navštívených stránek",
     "description": "An option title on the Preferences screen (option_dnslinkDataPreload_title)"
   },
   "option_dnslinkDataPreload_description": {
-    "message": "Webové servery DNSLink budou předběžně načteny do místního uzlu IPFS, aby se umožnil přístup offline a zvýšila odolnost proti selhání sítě",
+    "message": "Předem nahrajte weby DNSLink do místního uzlu IPFS, což umožní offline přístup a zvýší odolnost proti výpadku sítě.",
     "description": "An option description on the Preferences screen (option_dnslinkDataPreload_description)"
   },
   "option_dnslinkRedirect_warning": {
-    "message": "Toto nepoužívejte, pokud váš uzel IPFS nepodporuje *.ipfs.localhost. Přesměrování na bránu založenou na cestě přerušuje zabezpečení založené na původu webových stránek DNSLink. Ujistěte se, že rozumíte souvisejícím rizikům.",
+    "message": "Nepoužívejte, pokud váš uzel IPFS nepodporuje *.ipfs.localhost. Přesměrování na bránu založenou na cestě porušuje bezpečnostní izolaci webů DNSLink založenou na původu, proto se ujistěte, že rozumíte souvisejícím rizikům.",
     "description": "A warning on the Preferences screen, displayed when URL does not belong to Secure Context (option_customGatewayUrl_warning)"
   },
-  "option_noIntegrationsHostnames_title": {
-    "message": "IPFS integrace Opt-Outů",
-    "description": "An option title on the Preferences screen (option_noIntegrationsHostnames_title)"
+  "option_disabledOn_title": {
+    "message": "Vždy zakázat integrace IPFS",
+    "description": "An option title on the Preferences screen (option_disabledOn_title)"
   },
-  "option_noIntegrationsHostnames_description": {
-    "message": "Seznam webových stránek, které by neměly mít povolenou integraci IPFS. Jeden název hostitele na řádek.",
-    "description": "An option description on the Preferences screen (option_noRedirectHostnames_description)"
+  "option_disabledOn_description": {
+    "message": "Weby v tomto seznamu (jeden název hostitele na řádek) se vždy načtou s vypnutou integrací IPFS. Přepnutím možnosti \"Povolit na ...\" v akční nabídce prohlížeče při návštěvě webu jej také přidáte nebo odeberete z tohoto seznamu.",
+    "description": "An option description on the Preferences screen (option_disabledOn_description)"
+  },
+  "option_enabledOn_title": {
+    "message": "Vždy povolit integrace IPFS",
+    "description": "An option title on the Preferences screen (option_enabledOn_title)"
+  },
+  "option_enabledOn_description": {
+    "message": "Weby v tomto seznamu (jeden název hostitele na řádek) se vždy načtou s povolenou integrací IPFS. Přepnutím možnosti \"Povolit na ...\" v akční nabídce prohlížeče při návštěvě webu jej také přidáte nebo odeberete z tohoto seznamu.",
+    "description": "An option description on the Preferences screen (option_enabledOn_description)"
   },
   "option_publicGatewayUrl_title": {
     "message": "Výchozí veřejná brána",
     "description": "An option title on the Preferences screen (option_publicGatewayUrl_title)"
   },
   "option_publicGatewayUrl_description": {
-    "message": "Záložní URL pro sdílející odkazy bude použita v případě že vlastní brána nebude dostupná",
+    "message": "Nastavte adresu URL výchozí veřejné brány, která se bude používat ve veřejně sdílených odkazech a jako náhradní řešení v případě nedostupnosti místní brány.",
     "description": "An option description on the Preferences screen (option_publicGatewayUrl_description)"
   },
   "option_publicSubdomainGatewayUrl_title": {
@@ -332,7 +384,7 @@
     "description": "An option title on the Preferences screen (option_publicSubdomainGatewayUrl_title)"
   },
   "option_publicSubdomainGatewayUrl_description": {
-    "message": "Výchozí veřejná subdoménová brána pro obnovu nefunkčních subdoménových bran",
+    "message": "Nastavení adresy URL výchozí veřejné brány subdomény pro obnovení nefunkčních bran subdomény.",
     "description": "An option description on the Preferences screen (option_publicSubdomainGatewayUrl_description)"
   },
   "option_header_api": {
@@ -344,7 +396,7 @@
     "description": "An option title on the Preferences screen (option_ipfsApiUrl_title)"
   },
   "option_ipfsApiUrl_description": {
-    "message": "Nápověda: toto je umístění /api/v0/config",
+    "message": "Nastavte adresu URL rozhraní IPFS API. (Nápověda: je to místo, kde se nachází /api/v0/config.)",
     "description": "An option description on the Preferences screen (option_ipfsApiUrl_description)"
   },
   "option_ipfsApiPollMs_title": {
@@ -352,15 +404,15 @@
     "description": "An option title on the Preferences screen (option_ipfsApiPollMs_title)"
   },
   "option_ipfsApiPollMs_description": {
-    "message": "Jak často je obnoven počet připojení (v milisekundách)",
+    "message": "Zadejte, jak často (v milisekundách) se má počet vrstevníků obnovovat.",
     "description": "An option description on the Preferences screen (option_ipfsApiPollMs_description)"
   },
   "option_automaticMode_title": {
-    "message": "Automatický mód",
+    "message": "Použít automatický režim",
     "description": "An option title on the Preferences screen (option_automaticMode_title)"
   },
   "option_automaticMode_description": {
-    "message": "Přepnout použití vlastní brány když se dostupnost IPFS API změní",
+    "message": "Automatické přepnutí z místní brány na výchozí veřejnou bránu, pokud je rozhraní IPFS API nedostupné.",
     "description": "An option description on the Preferences screen (option_automaticMode_description)"
   },
   "option_header_dnslink": {
@@ -371,28 +423,52 @@
     "message": "Experimenty",
     "description": "A section header on the Preferences screen (option_header_experiments)"
   },
+  "option_header_reset": {
+    "message": "Obnovit předvolby",
+    "description": "A section header on the Preferences screen (option_header_reset)"
+  },
   "option_experimental": {
     "message": "experimentální",
     "description": "Warning label added to experimental options on the Preferences screen (option_experimental)"
   },
+  "option_deprecated": {
+    "message": "zastaralé",
+    "description": "Warning label added to deprecated options on the Preferences screen (option_deprecated)"
+  },
   "option_experiments_warning": {
-    "message": "Upozornění: tyto funkcionality jsou nové nebo stále ve vývoji.",
+    "message": "Pozor! Na těchto experimentálních funkcích se pracuje a jejich dostupnost a funkčnost se může změnit.",
     "description": "Warning about Experiments section on the Preferences screen (option_experiments_warning)"
+  },
+  "option_useLatestWebUI_title": {
+    "message": "Použití nejnovější verze webového rozhraní IPFS",
+    "description": "An option title on the Preferences screen (option_useLatestWebUI_title)"
+  },
+  "option_useLatestWebUI_description": {
+    "message": "Používejte nejnovější verzi obrazovek Stav, Soubory, Prozkoumat, Partneři a Nastavení z webui.ipfs.io (prostřednictvím DNSLink) namísto pevně zadaných CID dodávaných s démonem IPFS. (Povolte pouze v případě, že důvěřujete svému DNS resolveru a rozumíte tomu, jak nastavit požadované hlavičky CORS.)",
+    "description": "An option description on the Preferences screen (option_useLatestWebUI_description)"
   },
   "option_displayNotifications_title": {
     "message": "Povolit notifikace",
     "description": "An option title on the Preferences screen (option_displayNotifications_title)"
   },
   "option_displayNotifications_description": {
-    "message": "Zobrazit systémové notifikace když se změní stav API, odkaz je zkopírován apod.",
+    "message": "Zobrazení oznámení na úrovni operačního systému při kopírování odkazu do schránky,změně stavu rozhraní API atd.",
     "description": "An option description on the Preferences screen (option_displayNotifications_description)"
+  },
+  "option_displayReleaseNotes_title": {
+    "message": "Zobrazit poznámky k verzi v aktualizaci",
+    "description": "An option title on the Preferences screen (option_displayReleaseNotes_title)"
+  },
+  "option_displayReleaseNotes_description": {
+    "message": "Při instalaci nové verze systému IPFS Companion otevřete poznámky k vydání na nové kartě.",
+    "description": "An option description on the Preferences screen (option_displayReleaseNotes_description)"
   },
   "option_catchUnhandledProtocols_title": {
     "message": "Zachytit neregistrované IPFS protokoly",
     "description": "An option title on the Preferences screen (option_catchUnhandledProtocols_title)"
   },
   "option_catchUnhandledProtocols_description": {
-    "message": "Povoluje dočasnou podporu pro ipfs://, ipns:// a dweb: přesměrováním neošetřených požadavků adresního řádku na bránu HTTP",
+    "message": "Povolte dočasnou podporu požadavků ipfs://, ipns:// a dweb: jejich přesměrováním na bránu HTTP.",
     "description": "An option description on the Preferences screen (option_catchUnhandledProtocols_description)"
   },
   "option_linkify_title": {
@@ -400,15 +476,15 @@
     "description": "An option title on the Preferences screen (option_linkify_title)"
   },
   "option_linkify_description": {
-    "message": "Převést /ipfs/ adresy na klikatelné odkazy",
+    "message": "Přeměna cest /ipfs/ zobrazených na webových stránkách jako prostý text na klikací odkazy.",
     "description": "An option description on the Preferences screen (option_linkify_description)"
   },
   "option_dnslinkPolicy_title": {
-    "message": "DNSLink Lookup",
+    "message": "Zásady vyhledávání DNSLink",
     "description": "An option title on the Preferences screen (option_dnslinkPolicy_title)"
   },
   "option_dnslinkPolicy_description": {
-    "message": "Zásady vyhledávání pro zobrazování kontextových akcí na webech s DNSLink",
+    "message": "Zvolte zásady pro vyhledávání a zobrazování kontextových akcí na webech s povolenou službou DNSLink.",
     "description": "An option description on the Preferences screen (option_dnslinkPolicy_description)"
   },
   "option_dnslinkPolicy_disabled": {
@@ -428,43 +504,31 @@
     "description": "An option title on the Preferences screen (option_recoverFailedHttpRequests_title)"
   },
   "option_recoverFailedHttpRequests_description": {
-    "message": "Obnovení neúspěšných požadavků HTTP na prostředky IPFS přesměrováním na veřejnou bránu.",
+    "message": "Přesměrování neúspěšných požadavků HTTP na prostředky IPFS na veřejnou bránu.",
     "description": "An option description on the Preferences screen (option_recoverFailedHttpRequests_description)"
   },
   "option_detectIpfsPathHeader_title": {
-    "message": "Detekovat X-Ipfs-Path Header",
+    "message": "Detekce záhlaví x-ipfs-path",
     "description": "An option title on the Preferences screen (option_detectIpfsPathHeader_title)"
   },
   "option_detectIpfsPathHeader_description": {
-    "message": "Ignorovat HTTP požadavky a načíst skrze IPFS pokud je hodnota IPFS adresa. Přesměrování IPNS cest vyžaduje zapnutou podporu DNSLink.",
+    "message": "Načtení položek s hlavičkami x-ipfs-path přes IPFS (místo HTTP), pokud je hodnotou hlavičky cesta IPFS. Chcete-li přesměrovat i cesty IPNS, povolte podporu DNSLink.",
     "description": "An option description on the Preferences screen (option_detectIpfsPathHeader_description)"
   },
-  "option_ipfsProxy_title": {
-    "message": "window.ipfs",
-    "description": "An option title for enabling/disabling the IPFS proxy (option_ipfsProxy_title)"
-  },
-  "option_ipfsProxy_description": {
-    "message": "IPFS je vloženo do objektu window na každé stránce. Povolit/zakázat přístup k funkcionalitě kterou zpřístupňuje.",
-    "description": "An option description for the IPFS proxy (option_ipfsProxy_description)"
-  },
-  "option_ipfsProxy_link_manage_permissions": {
-    "message": "Spravovat oprávnění",
-    "description": "Link text for managing permissions"
-  },
   "option_openViaWebUI_title": {
-    "message": "Otevřít importované soubory ve webovém rozhraní",
+    "message": "Otevření importovaných souborů na obrazovce Soubory",
     "description": "An option title on the Preferences screen (option_openViaWebUI_title)"
   },
   "option_openViaWebUI_description": {
-    "message": "Místo otevírání souboru nebo nadřazeného adresáře na bráně zobrazit soubory ve webovém rozhraní.",
+    "message": "Po importu souboru jej otevřete na obrazovce Soubory, místo abyste jej nebo jeho nadřazený adresář otevřeli v bráně.",
     "description": "An option description on the Preferences screen (option_openViaWebUI_description)"
   },
   "option_preloadAtPublicGateway_title": {
-    "message": "Předběžné importy",
+    "message": "Předběžné načtení importovaných Assetů",
     "description": "An option title on the Preferences screen (option_preloadAtPublicGateway_title)"
   },
   "option_preloadAtPublicGateway_description": {
-    "message": "Umožnit automatické předběžné načtení importovaných dat prostřednictvím asynchronního požadavku HTTP HEAD na veřejnou bránu",
+    "message": "Automatické předběžné načítání prostředků importovaných do systému IPFS prostřednictvím asynchronních požadavků HTTP HEAD na veřejnou bránu.",
     "description": "An option description on the Preferences screen (option_preloadAtPublicGateway_description)"
   },
   "option_logNamespaces_title": {
@@ -472,7 +536,7 @@
     "description": "An option title for tweaking log level (option_logNamespaces_title)"
   },
   "option_logNamespaces_description": {
-    "message": "Přizpůsobte, které jmenné prostory jsou přihlášeny do konzoly prohlížeče. Změna této hodnoty spustí restart rozšíření.",
+    "message": "Jmenné prostory v tomto seznamu odděleném čárkami budou zaznamenány do konzoly prohlížeče. Změna tohoto seznamu způsobí restartování IPFS Companion.",
     "description": "An option description for the log level (option_logNamespaces_description)"
   },
   "option_importDir_title": {
@@ -480,7 +544,7 @@
     "description": "An option title on the Preferences screen (option_importDir_title)"
   },
   "option_importDir_description": {
-    "message": "Přizpůsobte adresář používaný pro importované soubory.",
+    "message": "Nastavte adresář, který chcete používat pro soubory importované pomocí IPFS Companion.",
     "description": "An option description on the Preferences screen (option_importDir_description)"
   },
   "option_resetAllOptions_title": {
@@ -488,7 +552,7 @@
     "description": "An option title and button label on the Preferences screen (option_resetAllOptions_title)"
   },
   "option_resetAllOptions_description": {
-    "message": "Nahradí uživatelovo nastavení výchozími hodnotami (nevratná akce!)",
+    "message": "Obnovení všech předvoleb systému IPFS Companion na výchozí hodnoty. Upozornění: Nelze vrátit zpět!",
     "description": "An option description on the Preferences screen (option_resetAllOptions_description)"
   },
   "manifest_extensionName": {
@@ -500,8 +564,16 @@
     "description": "Short extension name in the Manifest file (manifest_shortExtensionName)"
   },
   "manifest_extensionDescription": {
-    "message": "Rozšíření prohlížeče který zjednodušuje přístup k IPFS objektům",
+    "message": "Využití výkonu systému IPFS v prohlížeči",
     "description": "Extension description in the Manifest file (manifest_extensionDescription)"
+  },
+  "quickImport_page_title": {
+    "message": "Import a sdílení souborů | IPFS Companion",
+    "description": "Page title (quickImport_page_title)"
+  },
+  "quickImport_head_peers": {
+    "message": "Import a sdílení souborů",
+    "description": "Header on the share files page (quickImport_subhead_peers)"
   },
   "quickImport_subhead_peers": {
     "message": "Připojeno k $1 uzlům",
@@ -516,8 +588,8 @@
     "description": "seperates the pick a file button from the drop message (quickImport_or)"
   },
   "quickImport_drop_it_here": {
-    "message": "přetáhnout sem pro sdílení",
-    "description": "Partial info stats beneath the header on the share files page (quickImport_drop_it_here)"
+    "message": "sem vhodit",
+    "description": "Drop message on the share files page (quickImport_drop_it_here)"
   },
   "quickImport_state_importing": {
     "message": "Probíhá import...",
@@ -536,71 +608,11 @@
     "description": "Textbox label on the share files page (quickImport_options_importDir)"
   },
   "quickImport_options_openViaWebUI": {
-    "message": "Otevřít ve webovém rozhraní",
+    "message": "Otevřít na stránce Soubory",
     "description": "Checkbox label on the share files page (quickImport_options_openViaWebUI)"
   },
-  "page_proxyAcl_title": {
-    "message": "Spravovat oprávnění",
-    "description": "Page title for the IPFS proxy ACL page (page_proxyAcl_title)"
-  },
-  "page_proxyAcl_subtitle": {
-    "message": "Zobrazit, změnit či odebrat přístup k vaší IPFS instanci.",
-    "description": "Page sub title for the IPFS proxy ACL page (page_proxyAcl_subtitle)"
-  },
-  "page_proxyAcl_no_perms": {
-    "message": "Žádné udělené oprávnění.",
-    "description": "Message displayed when no permissions have been granted (page_proxyAcl_no_perms)"
-  },
-  "page_proxyAcl_confirm_revoke": {
-    "message": "Odebrat oprávnění $1 od $2?",
-    "description": "Confirmation message for revoking a permission for a scope (page_proxyAcl_confirm_revoke)"
-  },
-  "page_proxyAcl_confirm_revoke_all": {
-    "message": "Odebrat všechna oprávnění od $1?",
-    "description": "Confirmation message for revoking all permissions for an scope (page_proxyAcl_confirm_revoke_all)"
-  },
-  "page_proxyAcl_toggle_to_allow_button_title": {
-    "message": "Pro povolení klikněte",
-    "description": "Button title for toggling permission from deny to allow (page_proxyAcl_toggle_to_allow_button_title)"
-  },
-  "page_proxyAcl_toggle_to_deny_button_title": {
-    "message": "Pro zakázání klikněte",
-    "description": "Button title for toggling permission from allow to deny (page_proxyAcl_toggle_to_deny_button_title)"
-  },
-  "page_proxyAcl_allow_button_value": {
-    "message": "Povolit",
-    "description": "Button value for allow (page_proxyAcl_allow_button_value)"
-  },
-  "page_proxyAcl_deny_button_value": {
-    "message": "Zakázat",
-    "description": "Button value for deny"
-  },
-  "page_proxyAcl_revoke_button_title": {
-    "message": "Odebrat $1",
-    "description": "Button title for revoking a permission (page_proxyAcl_revoke_button_title)"
-  },
-  "page_proxyAccessDialog_title": {
-    "message": "Měl by IPFS Companion povolit «$1» přístup «$2» v připojeném uzlu?",
-    "description": "Main title of the access permission dialog (page_proxyAccessDialog_title)"
-  },
-  "page_proxyAccessDialog_wildcardCheckbox_label": {
-    "message": "Použijte toto rozhodnutí na všechna současná a budoucí oprávnění v tomto rozsahu",
-    "description": "Label for the apply permissions to all checkbox (page_proxyAccessDialog_wildcardCheckbox_label)"
-  },
-  "page_proxyAcl_revoke_all_button_title": {
-    "message": "Odebrat všechna oprávnění",
-    "description": "Button title for revoking all permissions (page_proxyAcl_revoke_all_button_title)"
-  },
-  "page_proxyAccessDialog_allowButton_text": {
-    "message": "Povolit",
-    "description": "Button text for allowing a permission (page_proxyAccessDialog_allowButton_text)"
-  },
-  "page_proxyAccessDialog_denyButton_text": {
-    "message": "Zakázat",
-    "description": "Button text for denying a permission (page_proxyAccessDialog_allowButton_text)"
-  },
   "page_landingWelcome_title": {
-    "message": "IPFS Companion - Vítejte!",
+    "message": "Vítejte | IPFS Companion",
     "description": "Page title (page_landingWelcome_title)"
   },
   "page_landingWelcome_logo_title": {
@@ -608,7 +620,7 @@
     "description": "Extension name after the IPFS logo (page_landingWelcome_logo_title)"
   },
   "page_landingWelcome_welcome_peers": {
-    "message": "Your node is connected to <0>$1</0> peers.",
+    "message": "Váš uzel je připojen k <0>$1</0> peerů.",
     "description": "Ready message copy (page_landingWelcome_welcome_peers)"
   },
   "page_landingWelcome_welcome_statusButton_text": {
@@ -627,80 +639,88 @@
     "message": "IPFS neběží",
     "description": "Install steps title (page_landingWelcome_installSteps_notRunning_title)"
   },
+  "page_landingWelcome_installSteps_brave_title": {
+    "message": "Uživatelé Brave",
+    "description": "Install steps title (page_landingWelcome_installSteps_brave_title)"
+  },
+  "page_landingWelcome_installSteps_brave_install": {
+    "message": "IPFS můžete spustit přímo v prohlížeči - není třeba používat aplikaci IPFS Desktop ani příkazový řádek. Otevřete <0>Předvolby Companion</0> a nastavte typ uzlu IPFS na \"Poskytnuto od Brave\".",
+    "description": "Install steps copy (page_landingWelcome_installSteps_brave_install)"
+  },
   "page_landingWelcome_installSteps_desktop_title": {
-    "message": "IPFS Desktop users",
+    "message": "Uživatelé IPFS Desktop",
     "description": "Install steps title (page_landingWelcome_installSteps_desktop_title)"
   },
   "page_landingWelcome_installSteps_desktop_install": {
-    "message": "Make sure IPFS Desktop is running. Don't have it installed? <0>Download IPFS Desktop now.</0>",
+    "message": "Zkontrolujte, zda je spuštěn IPFS Desktop. Nemáte ho nainstalovaný? <0>Stáhněte si IPFS Desktop</0>.",
     "description": "Install steps copy (page_landingWelcome_installSteps_desktop_install)"
   },
   "page_landingWelcome_installSteps_cli_title": {
-    "message": "Command-line users",
+    "message": "Uživatelé příkazové řádky",
     "description": "Install steps title (page_landingWelcome_installSteps_cli_title)"
   },
   "page_landingWelcome_installSteps_cli_install": {
-    "message": "Start IPFS by entering <code class=\"yellow\">ipfs daemon</code> in your terminal. If you don't have IPFS installed yet, follow the <0>CLI quick-start guide</0> first.",
+    "message": "Spusťte IPFS zadáním příkazu <code class=\"yellow\">ipfs daemon</code> v terminálu. Pokud ještě nemáte nainstalovaný IPFS, postupujte nejprve podle <0>příručky pro rychlé spuštění CLI</0>.",
     "description": "Install steps copy (page_landingWelcome_installSteps_cli_install)"
   },
   "page_landingWelcome_resources_title_new_ipfs": {
-    "message": "Learn about IPFS",
+    "message": "Další informace o IPFS",
     "description": "Resources title (page_landingWelcome_resources_title_new_ipfs)"
   },
   "page_landingWelcome_resources_new_ipfs_companion_features": {
-    "message": "Read about <0>IPFS Companion's features</0>",
+    "message": "Přečtěte si o <0>funkcích IPFS Companion</0>",
     "description": "Resources copy (page_landingWelcome_resources_new_ipfs_companion_features)"
   },
   "page_landingWelcome_resources_new_ipfs_concepts": {
-    "message": "Learn basic concepts in the <0>How IPFS Works</0> guide",
+    "message": "Základní pojmy se dozvíte v příručce <0>Jak funguje IPFS</0>.",
     "description": "Resources copy (page_landingWelcome_resources_new_ipfs_concepts)"
   },
   "page_landingWelcome_resources_new_ipfs_docs": {
-    "message": "Visit the <0>IPFS documentation site</0> to dig deeper",
+    "message": "Navštivte <0>stránky s dokumentací IPFS</0> a prohlédněte si je hlouběji.",
     "description": "Resources copy (page_landingWelcome_resources_new_ipfs_docs)"
   },
   "page_landingWelcome_resources_title_build": {
-    "message": "Build on IPFS",
+    "message": "Vytvořeno na IPFS",
     "description": "Resources title (page_landingWelcome_resources_title_build)"
   },
   "page_landingWelcome_resources_build_tutorials": {
-    "message": "Find <0>how-tos and tutorials</0> to help get you started",
+    "message": "Najděte <0>návody a tutoriály</0>, které vám pomohou začít.",
     "description": "Resources copy (page_landingWelcome_resources_build_tutorials)"
   },
   "page_landingWelcome_resources_build_examples": {
-    "message": "See what <0>awesome things</0> others are building with IPFS",
+    "message": "Podívejte se, jaké <0>úžasné věci</0> vytvářejí ostatní pomocí IPFS",
     "description": "Resources copy (page_landingWelcome_resources_build_examples)"
   },
   "page_landingWelcome_resources_title_get_help": {
-    "message": "Get help",
+    "message": "Vyhledejte pomoc",
     "description": "Resources title (page_landingWelcome_resources_title_get_help)"
   },
   "page_landingWelcome_resources_get_help": {
-    "message": "Ask questions and discuss IPFS in the <0>official forums</0>",
+    "message": "Ptejte se a diskutujte o IPFS na <0>oficiálních fórech</0>",
     "description": "Resources copy (page_landingWelcome_resources_get_help)"
   },
   "page_landingWelcome_resources_title_community": {
-    "message": "Join the community",
+    "message": "Zapojte se do komunity",
     "description": "Community title (page_landingWelcome_resources_title_community)"
   },
   "page_landingWelcome_resources_community_contribute": {
-    "message": "<0>Contribute</0> with code, documentation, and more",
+    "message": "<0>Přispívejte</0> kódem, dokumentací a dalšími informacemi",
     "description": "Community copy (page_landingWelcome_resources_community_contribute)"
   },
   "page_landingWelcome_resources_community_translate": {
-    "message": "<0>Translate</0> IPFS into your favorite language",
+    "message": "<0>Přeložte</0> IPFS do svého oblíbeného jazyka",
     "description": "Community copy (page_landingWelcome_resources_community_translate)"
   },
   "page_landingWelcome_resources_community_resources": {
-    "message": "Explore all <0>IPFS community resources</0>",
+    "message": "Prozkoumejte všechny <0>komunitní zdroje IPFS</0>",
     "description": "Community copy (page_landingWelcome_resources_community_resources)"
   },
   "page_landingWelcome_videos_why_ipfs": {
-    "message": "Why IPFS?",
+    "message": "Proč IPFS?",
     "description": "Videos section title (page_landingWelcome_videos_why_ipfs)"
   },
   "page_landingWelcome_videos_how_ipfs_works": {
-    "message": "How IPFS Works",
+    "message": "Jak IPFS funguje",
     "description": "Videos section title (page_landingWelcome_videos_how_ipfs_works)"
   },
   "page_landingWelcome_projects_title": {

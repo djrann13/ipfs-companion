@@ -1,12 +1,21 @@
 'use strict'
 /* eslint-env browser */
 
-const isIPFS = require('is-ipfs')
-const isFQDN = require('is-fqdn')
+import pMemoize from 'p-memoize'
+import isIPFS from 'is-ipfs'
+import isFQDN from 'is-fqdn'
+
+// For how long more expensive lookups (DAG traversal etc) should be cached
+const RESULT_TTL_MS = 300000 // 5 minutes
 
 // Turns URL or URIencoded path into a content path
-function ipfsContentPath (urlOrPath, opts) {
+export function ipfsContentPath (urlOrPath, opts) {
   opts = opts || {}
+
+  // ipfs:// → /ipfs/
+  if (urlOrPath && urlOrPath.toString().startsWith('ip')) {
+    urlOrPath = urlOrPath.replace(/^(ip[n|f]s):\/\//, '/$1/')
+  }
 
   // Fail fast if no content path can be extracted from input
   if (!isIPFS.urlOrPath(urlOrPath)) return null
@@ -19,7 +28,8 @@ function ipfsContentPath (urlOrPath, opts) {
 
   if (isIPFS.subdomain(urlOrPath)) {
     // Move CID-in-subdomain to URL pathname
-    const { id, ns } = subdomainPatternMatch(url)
+    let { id, ns } = subdomainPatternMatch(url)
+    id = dnsLabelToFqdn(id)
     url = new URL(`https://localhost/${ns}/${id}${url.pathname}${url.search}${url.hash}`)
   }
 
@@ -36,7 +46,13 @@ function ipfsContentPath (urlOrPath, opts) {
   // Else, return content path as-is
   return contentPath
 }
-exports.ipfsContentPath = ipfsContentPath
+
+// Turns URL or URIencoded path into a ipfs:// or ipns:// URI
+export function ipfsUri (urlOrPath) {
+  const contentPath = ipfsContentPath(urlOrPath, { keepURIParams: true })
+  if (!contentPath) return null
+  return contentPath.replace(/^\/(ip[f|n]s)\//, '$1://')
+}
 
 function subdomainPatternMatch (url) {
   if (typeof url === 'string') {
@@ -49,11 +65,20 @@ function subdomainPatternMatch (url) {
   return { id, ns }
 }
 
-function pathAtHttpGateway (path, gatewayUrl) {
+function dnsLabelToFqdn (label) {
+  if (label && !label.includes('.') && label.includes('-') && !isIPFS.cid(label)) {
+    // no '.' means the subdomain name is most likely an inlined DNSLink into single DNS label
+    // en-wikipedia--on--ipfs-org → en.wikipedia-on-ipfs.org
+    // (https://github.com/ipfs/in-web-browsers/issues/169)
+    label = label.replace(/--/g, '@').replace(/-/g, '.').replace(/@/g, '-')
+  }
+  return label
+}
+
+export function pathAtHttpGateway (path, gatewayUrl) {
   // return URL without duplicated slashes
   return trimDoubleSlashes(new URL(`${gatewayUrl}${path}`).toString())
 }
-exports.pathAtHttpGateway = pathAtHttpGateway
 
 function swapSubdomainGateway (url, subdomainGwURL) {
   if (typeof url === 'string') {
@@ -66,20 +91,18 @@ function swapSubdomainGateway (url, subdomainGwURL) {
   )).toString()
 }
 
-function trimDoubleSlashes (urlString) {
+export function trimDoubleSlashes (urlString) {
   return urlString.replace(/([^:]\/)\/+/g, '$1')
 }
-exports.trimDoubleSlashes = trimDoubleSlashes
 
-function trimHashAndSearch (urlString) {
+export function trimHashAndSearch (urlString) {
   // https://github.com/ipfs-shipyard/ipfs-companion/issues/567
   return urlString.split('#')[0].split('?')[0]
 }
-exports.trimHashAndSearch = trimHashAndSearch
 
 // Returns true if URL belongs to the gateway.
 // The check includes subdomain gateways and quirks of ipfs.io
-function sameGateway (url, gwUrl) {
+export function sameGateway (url, gwUrl) {
   if (typeof url === 'string') {
     url = new URL(url)
   }
@@ -117,9 +140,19 @@ function sameGateway (url, gwUrl) {
   }
   return false
 }
-exports.sameGateway = sameGateway
 
-function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
+export const safeHostname = (url) => {
+  // In case vendor-specific thing like brave://settings/extensions
+  // cause errors, we don't throw, just return null
+  try {
+    return new URL(url).hostname
+  } catch (e) {
+    console.error(`[ipfs-companion] safeHostname(url) error for url='${url}'`, e)
+  }
+  return null
+}
+
+export function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
   const ipfsPathValidator = {
     // Test if URL is a Public IPFS resource
     // (pass validIpfsOrIpns(url) and not at the local gateway or API)
@@ -143,6 +176,7 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
       if (isIPFS.ipfsPath(path)) {
         return true
       }
+
       // `/ipns/` requires multiple stages/branches (can be FQDN with dnslink or CID)
       if (isIPFS.ipnsPath(path)) {
         // we may have false-positives here, so we do additional checks below
@@ -171,7 +205,7 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
       const { apiURLString } = getState()
       const { hostname } = new URL(url)
       return Boolean(url && !url.startsWith(apiURLString) && (
-        isIPFS.url(url) ||
+        !!ipfsContentPath(url) ||
         dnslinkResolver.cachedDnslink(hostname)
       ))
     },
@@ -181,7 +215,7 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
       const { localGwAvailable, gwURL, apiURL } = getState()
       return localGwAvailable && // show only when redirect is possible
       (isIPFS.ipnsUrl(url) || // show on /ipns/<fqdn>
-        (url.startsWith('http') && // hide on non-HTTP pages
+        ((url.startsWith('http') || url.startsWith('ip')) && // hide on non-HTTP/native pages
          !sameGateway(url, gwURL) && // hide on /ipfs/* and *.ipfs.
           !sameGateway(url, apiURL))) // hide on api port
     },
@@ -198,6 +232,16 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
       const { pubSubdomainGwURL, pubGwURLString } = getState()
       const input = urlOrPath
 
+      // NATIVE ipns:// with DNSLink requires simple protocol swap
+      if (input.startsWith('ipns://')) {
+        const dnslinkUrl = new URL(input)
+        dnslinkUrl.protocol = 'https:'
+        const dnslink = dnslinkResolver.readAndCacheDnslink(dnslinkUrl.hostname)
+        if (dnslink) {
+          return dnslinkUrl.toString()
+        }
+      }
+
       // SUBDOMAINS
       // Detect *.dweb.link and other subdomain gateways
       if (isIPFS.subdomain(input)) {
@@ -213,10 +257,8 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
         //
         // Remove gateway suffix to get potential FQDN
         const url = new URL(subdomainUrl)
-        // TODO: replace below with regex that match any subdomain gw
         const { id: ipnsId } = subdomainPatternMatch(url)
-        // Ensure it includes .tld (needs at least one dot)
-        if (ipnsId.includes('.')) {
+        if (!isIPFS.cid(ipnsId)) {
           // Confirm DNSLink record is present and its not a false-positive
           const dnslink = dnslinkResolver.readAndCacheDnslink(ipnsId)
           if (dnslink) {
@@ -241,13 +283,27 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
     },
 
     // Version of resolveToPublicUrl that always resolves to URL representing
-    // path gateway at local machine (This is ok, as subdomain will redirect
-    // to corre
+    // path gateway at local machine (This is ok, as localhost gw will redirect
+    // to correct subdomain)
     resolveToLocalUrl (urlOrPath) {
       const { gwURLString } = getState()
       const ipfsPath = ipfsContentPath(urlOrPath, { keepURIParams: true })
       if (isIPFS.path(ipfsPath)) return pathAtHttpGateway(ipfsPath, gwURLString)
       return null
+    },
+
+    // Resolve URL or path to HTTP URL with CID:
+    // - IPFS paths are attached to HTTP Gateway root
+    // - URL of DNSLinked websties are resolved to CIDs
+    // The purpose of this resolver is to always return a meaningful, publicly
+    // accessible URL that can be accessed without the need of an IPFS client
+    // and that never changes.
+    async resolveToPermalink (urlOrPath, optionalGatewayUrl) {
+      const input = urlOrPath
+      const ipfsPath = await this.resolveToImmutableIpfsPath(input)
+      const gateway = optionalGatewayUrl || getState().pubGwURLString
+      if (ipfsPath) return pathAtHttpGateway(ipfsPath, gateway)
+      return input.startsWith('http') ? input : null
     },
 
     // Resolve URL or path to IPFS Path:
@@ -279,41 +335,15 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
     // - Returns null if no valid path can be produced
     // The purpose of this resolver is to return immutable /ipfs/ address
     // even if /ipns/ is present in its input.
-    async resolveToImmutableIpfsPath (urlOrPath) {
+    resolveToImmutableIpfsPath: pMemoize(async function (urlOrPath) {
       const path = ipfsPathValidator.resolveToIpfsPath(urlOrPath)
       // Fail fast if no IPFS Path
       if (!path) return null
       // Resolve /ipns/ → /ipfs/
       if (isIPFS.ipnsPath(path)) {
-        const labels = path.split('/')
         // We resolve /ipns/<fqdn> as value in DNSLink cache may be out of date
-        const ipnsRoot = `/ipns/${labels[2]}`
-
-        // js-ipfs v0.34 does not support DNSLinks in ipfs.name.resolve: https://github.com/ipfs/js-ipfs/issues/1918
-        // TODO: remove ipfsNameResolveWithDnslinkFallback when js-ipfs implements DNSLink support in ipfs.name.resolve
-        const ipfsNameResolveWithDnslinkFallback = async (resolve) => {
-          try {
-            return await resolve()
-          } catch (err) {
-            const fqdn = ipnsRoot.replace(/^.*\/ipns\/([^/]+).*/, '$1')
-            if (err.message === 'Non-base58 character' && isFQDN(fqdn)) {
-              // js-ipfs without dnslink support, fallback to the value read from DNSLink
-              const dnslink = dnslinkResolver.readAndCacheDnslink(fqdn)
-              if (dnslink) {
-                // swap problematic /ipns/{fqdn} with /ipfs/{cid} and retry lookup
-                const safePath = trimDoubleSlashes(ipnsRoot.replace(/^.*(\/ipns\/[^/]+)/, dnslink))
-                if (ipnsRoot !== safePath) {
-                  return ipfsPathValidator.resolveToImmutableIpfsPath(safePath)
-                }
-              }
-            }
-            throw err
-          }
-        }
-        const result = await ipfsNameResolveWithDnslinkFallback(async () =>
-          // dhtt/dhtrc optimize for lookup time
-          getIpfs().name.resolve(ipnsRoot, { recursive: true, dhtt: '5s', dhtrc: 1 })
-        )
+        const ipnsRoot = `/ipns/${path.split('/')[2]}`
+        const result = await getIpfs().resolve(ipnsRoot, { recursive: true })
 
         // Old API returned object, latest one returns string ¯\_(ツ)_/¯
         const ipfsRoot = result.Path ? result.Path : result
@@ -322,14 +352,14 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
       }
       // Return /ipfs/ path
       return path
-    },
+    }, { maxAge: RESULT_TTL_MS }),
 
     // Resolve URL or path to a raw CID:
     // - Result is the direct CID
     // - Ignores ?search and #hash from original URL
     // - Returns null if no CID can be produced
     // The purpose of this resolver is to return direct CID without anything else.
-    async resolveToCid (urlOrPath) {
+    resolveToCid: pMemoize(async function (urlOrPath) {
       const path = ipfsPathValidator.resolveToIpfsPath(urlOrPath)
       // Fail fast if no IPFS Path
       if (!path) return null
@@ -366,9 +396,8 @@ function createIpfsPathValidator (getState, getIpfs, dnslinkResolver) {
 
       const directCid = isIPFS.ipfsPath(result) ? result.split('/')[2] : result
       return directCid
-    }
+    }, { maxAge: RESULT_TTL_MS })
   }
 
   return ipfsPathValidator
 }
-exports.createIpfsPathValidator = createIpfsPathValidator

@@ -1,15 +1,18 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const html = require('choo/html')
-const { guiURLString } = require('../../lib/options')
-const switchToggle = require('../../pages/components/switch-toggle')
+import browser from 'webextension-polyfill'
+import html from 'choo/html/index.js'
+import { guiURLString } from '../../lib/options.js'
+import { braveNodeType } from '../../lib/ipfs-client/brave.js'
+import switchToggle from '../../pages/components/switch-toggle.js'
 
-function apiForm ({ ipfsApiUrl, ipfsApiPollMs, automaticMode, onOptionChange }) {
+export default function apiForm ({ ipfsNodeType, ipfsApiUrl, ipfsApiPollMs, automaticMode, onOptionChange }) {
   const onIpfsApiUrlChange = onOptionChange('ipfsApiUrl', (url) => guiURLString(url, { useLocalhostName: false }))
   const onIpfsApiPollMsChange = onOptionChange('ipfsApiPollMs')
   const onAutomaticModeChange = onOptionChange('automaticMode')
+  const apiAddresEditable = ipfsNodeType === 'external'
+  const braveClass = ipfsNodeType === braveNodeType ? 'brave' : ''
 
   return html`
     <form>
@@ -23,15 +26,16 @@ function apiForm ({ ipfsApiUrl, ipfsApiPollMs, automaticMode, onOptionChange }) 
             </dl>
           </label>
           <input
-            class="bg-white navy self-center-ns"
+            class="bg-white navy self-center-ns ${braveClass}"
             id="ipfsApiUrl"
             type="url"
             inputmode="url"
             required
             pattern="^https?://[^/]+/?$"
             spellcheck="false"
-            title="Enter URL without any sub-path"
+            title="${browser.i18n.getMessage(apiAddresEditable ? 'option_hint_url' : 'option_hint_readonly')}"
             onchange=${onIpfsApiUrlChange}
+            ${apiAddresEditable ? '' : 'disabled'}
             value=${ipfsApiUrl} />
         </div>
         <div class="flex-row-ns pb0-ns">
@@ -66,5 +70,3 @@ function apiForm ({ ipfsApiUrl, ipfsApiPollMs, automaticMode, onOptionChange }) 
     </form>
   `
 }
-
-module.exports = apiForm

@@ -1,15 +1,15 @@
 'use strict'
-const { describe, it, before, beforeEach, after } = require('mocha')
-const sinon = require('sinon')
-const { expect } = require('chai')
-const { URL } = require('url')
-const browser = require('sinon-chrome')
-const { initState } = require('../../../add-on/src/lib/state')
-const { createRuntimeChecks } = require('../../../add-on/src/lib/runtime-checks')
-const { createRequestModifier, redirectOptOutHint } = require('../../../add-on/src/lib/ipfs-request')
-const createDnslinkResolver = require('../../../add-on/src/lib/dnslink')
-const { createIpfsPathValidator } = require('../../../add-on/src/lib/ipfs-path')
-const { optionDefaults } = require('../../../add-on/src/lib/options')
+import { describe, it, before, beforeEach, after } from 'mocha'
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { URL } from 'url'
+import browser from 'sinon-chrome'
+import { initState } from '../../../add-on/src/lib/state.js'
+import createRuntimeChecks from '../../../add-on/src/lib/runtime-checks.js'
+import { createRequestModifier, redirectOptOutHint } from '../../../add-on/src/lib/ipfs-request.js'
+import createDnslinkResolver from '../../../add-on/src/lib/dnslink.js'
+import { createIpfsPathValidator } from '../../../add-on/src/lib/ipfs-path.js'
+import { optionDefaults } from '../../../add-on/src/lib/options.js'
 
 const url2request = (string) => {
   return { url: string, type: 'main_frame' }
@@ -32,6 +32,7 @@ describe('modifyRequest.onBeforeRequest:', function () {
   before(function () {
     global.URL = URL
     global.browser = browser
+    browser.runtime.id = 'testid'
   })
 
   beforeEach(async function () {
@@ -209,13 +210,13 @@ describe('modifyRequest.onBeforeRequest:', function () {
         state.ipfsNodeType = 'external'
       })
       it('should be served from custom gateway if {path} points to a FQDN with existing dnslink', function () {
-        const request = url2request('https://google.com/ipns/ipfs.git.sexy/index.html?argTest#hashTest')
+        const request = url2request('https://google.com/ipns/en.wikipedia-on-ipfs.org/index.html?argTest#hashTest')
         // stub the existence of valid dnslink
-        const fqdn = 'ipfs.git.sexy'
+        const fqdn = 'en.wikipedia-on-ipfs.org'
         dnslinkResolver.readDnslinkFromTxtRecord = sinon.stub().withArgs(fqdn).returns('/ipfs/Qmazvovg6Sic3m9igZMKoAPjkiVZsvbWWc8ZvgjjK1qMss')
         // pretend API is online and we can do dns lookups with it
         state.peerCount = 1
-        expect(modifyRequest.onBeforeRequest(request).redirectUrl).to.equal('http://localhost:8080/ipns/ipfs.git.sexy/index.html?argTest#hashTest')
+        expect(modifyRequest.onBeforeRequest(request).redirectUrl).to.equal('http://localhost:8080/ipns/en.wikipedia-on-ipfs.org/index.html?argTest#hashTest')
       })
       it('should be served from custom gateway if {path} starts with a valid PeerID', function () {
         const request = url2request('https://google.com/ipns/QmSWnBwMKZ28tcgMFdihD8XS7p6QzdRSGf71cCybaETSsU/index.html?argTest#hashTest')
@@ -229,13 +230,13 @@ describe('modifyRequest.onBeforeRequest:', function () {
         state.ipfsNodeType = 'embedded'
       })
       it('should be served from public gateway if {path} points to a FQDN with existing dnslink', function () {
-        const request = url2request('https://google.com/ipns/ipfs.git.sexy/index.html?argTest#hashTest')
+        const request = url2request('https://google.com/ipns/en.wikipedia-on-ipfs.org/index.html?argTest#hashTest')
         // stub the existence of valid dnslink
-        const fqdn = 'ipfs.git.sexy'
+        const fqdn = 'en.wikipedia-on-ipfs.org'
         dnslinkResolver.readDnslinkFromTxtRecord = sinon.stub().withArgs(fqdn).returns('/ipfs/Qmazvovg6Sic3m9igZMKoAPjkiVZsvbWWc8ZvgjjK1qMss')
         // pretend API is online and we can do dns lookups with it
         state.peerCount = 1
-        expect(modifyRequest.onBeforeRequest(request).redirectUrl).to.equal('https://ipfs.io/ipns/ipfs.git.sexy/index.html?argTest#hashTest')
+        expect(modifyRequest.onBeforeRequest(request).redirectUrl).to.equal('https://ipfs.io/ipns/en.wikipedia-on-ipfs.org/index.html?argTest#hashTest')
       })
       it('should be served from public gateway if {path} starts with a valid PeerID', function () {
         const request = url2request('https://google.com/ipns/QmSWnBwMKZ28tcgMFdihD8XS7p6QzdRSGf71cCybaETSsU/index.html?argTest#hashTest')

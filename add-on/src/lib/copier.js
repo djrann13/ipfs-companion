@@ -1,6 +1,6 @@
 'use strict'
 
-const { findValueForContext } = require('./context-menus')
+import { findValueForContext } from './context-menus.js'
 
 async function copyTextToClipboard (text, notify) {
   try {
@@ -31,7 +31,7 @@ async function copyTextToClipboard (text, notify) {
   }
 }
 
-function createCopier (notify, ipfsPathValidator) {
+export default function createCopier (notify, ipfsPathValidator) {
   return {
     async copyTextToClipboard (text) {
       await copyTextToClipboard(text, notify)
@@ -40,6 +40,12 @@ function createCopier (notify, ipfsPathValidator) {
     async copyCanonicalAddress (context, contextType) {
       const url = await findValueForContext(context, contextType)
       const ipfsPath = ipfsPathValidator.resolveToIpfsPath(url)
+      await copyTextToClipboard(ipfsPath, notify)
+    },
+
+    async copyCidAddress (context, contextType) {
+      const url = await findValueForContext(context, contextType)
+      const ipfsPath = await ipfsPathValidator.resolveToImmutableIpfsPath(url)
       await copyTextToClipboard(ipfsPath, notify)
     },
 
@@ -68,8 +74,12 @@ function createCopier (notify, ipfsPathValidator) {
       const url = await findValueForContext(context, contextType)
       const publicUrl = ipfsPathValidator.resolveToPublicUrl(url)
       await copyTextToClipboard(publicUrl, notify)
+    },
+
+    async copyPermalink (context, contextType) {
+      const url = await findValueForContext(context, contextType)
+      const permalink = await ipfsPathValidator.resolveToPermalink(url)
+      await copyTextToClipboard(permalink, notify)
     }
   }
 }
-
-module.exports = createCopier

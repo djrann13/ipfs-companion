@@ -1,17 +1,18 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const debug = require('debug')
+import debug from 'debug'
+
+import LRU from 'lru-cache'
+import isIPFS from 'is-ipfs'
+import isFQDN from 'is-fqdn'
+import { pathAtHttpGateway, sameGateway, ipfsUri } from './ipfs-path.js'
+import { safeURL } from './options.js'
+import { braveNodeType } from './ipfs-client/brave.js'
 const log = debug('ipfs-companion:request')
 log.error = debug('ipfs-companion:request:error')
 
-const LRU = require('lru-cache')
-const isIPFS = require('is-ipfs')
-const isFQDN = require('is-fqdn')
-const { pathAtHttpGateway, sameGateway } = require('./ipfs-path')
-const { safeURL } = require('./options')
-
-const redirectOptOutHint = 'x-ipfs-companion-no-redirect'
+export const redirectOptOutHint = 'x-ipfs-companion-no-redirect'
 const recoverableNetworkErrors = new Set([
   // Firefox
   'NS_ERROR_UNKNOWN_HOST', // dns failure
@@ -30,17 +31,34 @@ const onHeadersReceivedRedirect = new Set()
 
 // Request modifier provides event listeners for the various stages of making an HTTP request
 // API Details: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/webRequest
-function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, runtime) {
+export function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, runtime) {
   const browser = runtime.browser
   const runtimeRoot = browser.runtime.getURL('/')
-  const webExtensionOrigin = runtimeRoot ? new URL(runtimeRoot).origin : 'null'
+  const webExtensionOrigin = runtimeRoot ? new URL(runtimeRoot).origin : 'http://companion-origin' // avoid 'null' because it has special meaning
+  const isCompanionRequest = (request) => {
+    // We inspect webRequest object (WebExtension API) instead of Origin HTTP
+    // header because the value of the latter changed over the years ad
+    // absurdum. It leaks the unique extension ID and no vendor seem to have
+    // coherent  policy around it, Firefox and Chromium flip back and forth:
+    // Firefox  Nightly 65 sets moz-extension://{extension-installation-id}
+    // Chromium        <72 sets null
+    // Chromium Beta    72 sets chrome-extension://{uid}
+    // Firefox  Nightly 85 sets null
+    const { originUrl, initiator } = request
+    // Of course, getting "Origin" is vendor-specific:
+    // FF: originUrl (Referer-like Origin URL with path)
+    // Chromium: initiator (just Origin, no path)
+    // Because of this mess, we normalize Origin by reading it from URL.origin
+    const { origin } = new URL(originUrl || initiator || 'http://missing-origin')
+    return origin === webExtensionOrigin
+  }
 
   // Various types of requests are identified once and cached across all browser.webRequest hooks
-  const requestCacheCfg = { max: 128, maxAge: 1000 * 30 }
+  const requestCacheCfg = { max: 128, ttl: 1000 * 30 }
   const ignoredRequests = new LRU(requestCacheCfg)
   const ignore = (id) => ignoredRequests.set(id, true)
   const isIgnored = (id) => ignoredRequests.get(id) !== undefined
-  const errorInFlight = new LRU({ max: 3, maxAge: 1000 })
+  const errorInFlight = new LRU({ max: 3, ttl: 1000 })
 
   // Returns a canonical hostname representing the site from url
   // Main reason for this is unwrapping DNSLink from local subdomain
@@ -89,7 +107,7 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
       if (fqdn.endsWith(optout) || (parentFqdn && parentFqdn.endsWith(optout))) return true
       return false
     }
-    if (state.noIntegrationsHostnames.some(triggerOptOut)) {
+    if (state.disabledOn.some(triggerOptOut)) {
       ignore(request.requestId)
     }
 
@@ -167,10 +185,9 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
         // Detect dnslink using heuristics enabled in Preferences
         if (state.dnslinkPolicy && dnslinkResolver.canLookupURL(request.url)) {
           if (state.dnslinkRedirect) {
-            const redirectUrl = dnslinkResolver.dnslinkAtGateway(request.url)
-            if (redirectUrl && isSafeToRedirect(request, runtime)) {
-              // console.log('onBeforeRequest.dnslinkRedirect', dnslinkRedirect)
-              return { redirectUrl }
+            const dnslinkAtGw = dnslinkResolver.dnslinkAtGateway(request.url)
+            if (dnslinkAtGw && isSafeToRedirect(request, runtime)) {
+              return redirectToGateway(request, dnslinkAtGw, state, ipfsPathValidator, runtime)
             }
           } else if (state.dnslinkDataPreload) {
             dnslinkResolver.preloadData(request.url)
@@ -192,32 +209,34 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
       // Special handling of requests made to API
       if (sameGateway(request.url, state.apiURL)) {
         const { requestHeaders } = request
-        // '403 - Forbidden' fix for Chrome and Firefox
-        // --------------------------------------------
-        // We update "Origin: *-extension://" HTTP headers in requests made to API
-        // by js-ipfs-http-client running in the background page of browser
-        // extension.  Without this, some users would need to do manual CORS
-        // whitelisting by adding "..extension://<UUID>" to
-        // API.HTTPHeaders.Access-Control-Allow-Origin in go-ipfs config.
-        // With this, API calls made by browser extension look like ones made
-        // by webui loaded from the API port.
-        // More info:
-        // Firefox: https://github.com/ipfs-shipyard/ipfs-companion/issues/622
-        // Chromium 71: https://github.com/ipfs-shipyard/ipfs-companion/pull/616
-        // Chromium 72: https://github.com/ipfs-shipyard/ipfs-companion/issues/630
 
-        // Firefox  Nightly 65 sets moz-extension://{extension-installation-id}
-        // Chromium Beta    72 sets chrome-extension://{uid}
-        const isWebExtensionOrigin = (origin) =>
-          origin &&
-            (origin.startsWith('moz-extension://') ||
-             origin.startsWith('chrome-extension://')) &&
-                new URL(origin).origin === webExtensionOrigin
-
-        // Replace Origin header matching webExtensionOrigin with API one
-        const foundAt = requestHeaders.findIndex(h => h.name === 'Origin' && isWebExtensionOrigin(h.value))
-        if (foundAt > -1) {
-          requestHeaders[foundAt].value = state.apiURL.origin
+        if (isCompanionRequest(request)) {
+          // '403 - Forbidden' fix for Chrome and Firefox
+          // --------------------------------------------
+          // We update "Origin: *-extension://" HTTP headers in requests made to API
+          // by js-ipfs-http-client running in the background page of browser
+          // extension.  Without this, some users would need to do manual CORS
+          // whitelisting by adding "..extension://<UUID>" to
+          // API.HTTPHeaders.Access-Control-Allow-Origin in go-ipfs config.
+          // With this, API calls made by browser extension look like ones made
+          // by webui loaded from the API port.
+          // More info:
+          // Firefox 65: https://github.com/ipfs-shipyard/ipfs-companion/issues/622
+          // Firefox 85: https://github.com/ipfs-shipyard/ipfs-companion/issues/955
+          // Chromium 71: https://github.com/ipfs-shipyard/ipfs-companion/pull/616
+          // Chromium 72: https://github.com/ipfs-shipyard/ipfs-companion/issues/630
+          const foundAt = requestHeaders.findIndex(h => h.name.toLowerCase() === 'origin')
+          const { origin } = state.apiURL
+          if (foundAt > -1) {
+            // Replace existing Origin with the origin of the API itself.
+            // This removes the need for CORS setup in go-ipfs config and
+            // ensures there is no HTTP Error 403 Forbidden.
+            requestHeaders[foundAt].value = origin
+          } else { // future-proofing
+            // Origin is missing, and go-ipfs requires it in browsers:
+            // https://github.com/ipfs/go-ipfs-cmds/pull/193
+            requestHeaders.push({ name: 'Origin', value: origin })
+          }
         }
 
         // Fix "http: invalid Read on closed Body"
@@ -280,9 +299,9 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
         if (runtime.requiresXHRCORSfix && onHeadersReceivedRedirect.has(request.requestId)) {
           onHeadersReceivedRedirect.delete(request.requestId)
           if (state.dnslinkPolicy) {
-            const redirectUrl = dnslinkResolver.dnslinkAtGateway(request.url)
-            if (redirectUrl) {
-              return { redirectUrl }
+            const dnslinkAtGw = dnslinkResolver.dnslinkAtGateway(request.url)
+            if (dnslinkAtGw) {
+              return redirectToGateway(request, dnslinkAtGw, state, ipfsPathValidator, runtime)
             }
           }
           return redirectToGateway(request, request.url, state, ipfsPathValidator, runtime)
@@ -307,12 +326,12 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
                 // in a way that works even when state.dnslinkPolicy !== 'enabled'
                 // All the following requests will be upgraded to IPNS
                 const cachedDnslink = dnslinkResolver.readAndCacheDnslink(new URL(request.url).hostname)
-                const redirectUrl = dnslinkResolver.dnslinkAtGateway(request.url, cachedDnslink)
+                const dnslinkAtGw = dnslinkResolver.dnslinkAtGateway(request.url, cachedDnslink)
                 // redirect only if local node is around, as we can't guarantee DNSLink support
                 // at a public subdomain gateway (requires more than 1 level of wildcard TLS certs)
-                if (redirectUrl && state.localGwAvailable) {
-                  log(`onHeadersReceived: dnslinkRedirect from ${request.url} to ${redirectUrl}`)
-                  return { redirectUrl }
+                if (dnslinkAtGw && state.localGwAvailable) {
+                  log(`onHeadersReceived: dnslinkRedirect from ${request.url} to ${dnslinkAtGw}`)
+                  return redirectToGateway(request, dnslinkAtGw, state, ipfsPathValidator, runtime)
                 }
               }
               // Additional validation of X-Ipfs-Path
@@ -366,6 +385,7 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
       if (isRecoverableViaEthDNS(request, state)) {
         const url = new URL(request.url)
         url.hostname = `${url.hostname}.link`
+        url.protocol = 'https:' // force HTTPS, as HSTS may be missing on initial load
         const redirectUrl = url.toString()
         log(`onErrorOccurred: attempting to recover from DNS error (${request.error}) using EthDNS for ${request.url} → ${redirectUrl}`, request)
         return updateTabWithURL(request, redirectUrl, browser)
@@ -378,6 +398,7 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
         if (dnslink) {
           const redirectUrl = dnslinkResolver.dnslinkAtGateway(request.url, dnslink)
           log(`onErrorOccurred: attempting to recover from network error (${request.error}) using dnslink for ${request.url} → ${redirectUrl}`, request)
+          // We are unable to redirect in onErrorOccurred, but we can update the tab
           return updateTabWithURL(request, redirectUrl, browser)
         }
       }
@@ -392,6 +413,7 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
       if (isRecoverable(request, state, ipfsPathValidator)) {
         const redirectUrl = ipfsPathValidator.resolveToPublicUrl(request.url)
         log(`onErrorOccurred: attempting to recover from network error (${request.error}) for ${request.url} → ${redirectUrl}`, request)
+        // We are unable to redirect in onErrorOccurred, but we can update the tab
         return updateTabWithURL(request, redirectUrl, browser)
       }
     },
@@ -414,9 +436,9 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
 
         // Chromium bug: sometimes tabs.update does not work from onCompleted,
         // we run additional update after 1s just to be sure
-        setTimeout(() => browser.tabs.update({ url: fixedUrl }), 1000)
+        setTimeout(() => browser.tabs.update(request.tabId, { url: fixedUrl }), 1000)
 
-        return browser.tabs.update({ url: fixedUrl })
+        return browser.tabs.update(request.tabId, { url: fixedUrl })
       }
 
       if (isRecoverable(request, state, ipfsPathValidator)) {
@@ -427,9 +449,6 @@ function createRequestModifier (getState, dnslinkResolver, ipfsPathValidator, ru
     }
   }
 }
-
-exports.redirectOptOutHint = redirectOptOutHint
-exports.createRequestModifier = createRequestModifier
 
 // Returns a string with URL at the active gateway (local or public)
 function redirectToGateway (request, url, state, ipfsPathValidator, runtime) {
@@ -464,6 +483,18 @@ function redirectToGateway (request, url, state, ipfsPathValidator, runtime) {
       const useLocalhostName = false
       redirectUrl = safeURL(redirectUrl, { useLocalhostName }).toString()
     }
+    // Leverage native URI support in Brave for nice address bar.
+    if (type === 'main_frame' && state.ipfsNodeType === braveNodeType && !sameGateway(request.url, state.gwURL)) {
+      redirectUrl = ipfsUri(redirectUrl)
+      // In Brave 1.20.54 a webRequest redirect pointing at ipfs:// URI
+      // is not reflected in address bar - a http://*.localhost URL is displayed instead.
+      // but tabs.update works, so we do that for the main request.
+      if (redirectUrl !== url) { // futureproofing in case url from request becomes native
+        log('redirectToGateway: upgrading address bar to native URI', redirectUrl)
+        // manually set tab to native URI
+        return runtime.browser.tabs.update(request.tabId, { url: redirectUrl })
+      }
+    }
   }
 
   // return a redirect only if URL changed
@@ -496,6 +527,13 @@ function isSafeToRedirect (request, runtime) {
       }
     }
   }
+  // Ignore requests for which redirect would fail due to Brave Shields rules
+  // https://github.com/ipfs-shipyard/ipfs-companion/issues/962
+  if (runtime.brave && request.type !== 'main_frame') {
+    // log('Skippping redirect of IPFS subresource due to Brave Shields', request)
+    return false
+  }
+
   return true
 }
 
@@ -507,7 +545,7 @@ function isSafeToRedirect (request, runtime) {
 
 // This is just a placeholder that we had to provide -- removed in normalizedRedirectingProtocolRequest()
 // It has to match URL from manifest.json/protocol_handlers
-const redirectingProtocolEndpoint = 'https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#'
+const redirectingProtocolEndpoint = 'https://dweb.link/ipfs/?uri='
 
 function redirectingProtocolRequest (request) {
   return request.url.startsWith(redirectingProtocolEndpoint)
@@ -616,7 +654,7 @@ async function updateTabWithURL (request, redirectUrl, browser) {
   // Do nothing if the URL remains the same
   if (request.url === redirectUrl) return
 
-  return browser.tabs.update({
+  return browser.tabs.update(request.tabId, {
     active: true,
     url: redirectUrl
   })

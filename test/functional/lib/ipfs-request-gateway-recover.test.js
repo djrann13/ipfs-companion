@@ -1,18 +1,20 @@
 'use strict'
-const { describe, it, before, beforeEach, after, afterEach } = require('mocha')
-const sinon = require('sinon')
-const { assert } = require('chai')
-const { URL } = require('url')
-const browser = require('sinon-chrome')
-const { initState } = require('../../../add-on/src/lib/state')
-const { createRuntimeChecks } = require('../../../add-on/src/lib/runtime-checks')
-const { createRequestModifier } = require('../../../add-on/src/lib/ipfs-request')
-const createDnslinkResolver = require('../../../add-on/src/lib/dnslink')
-const { createIpfsPathValidator } = require('../../../add-on/src/lib/ipfs-path')
-const { optionDefaults } = require('../../../add-on/src/lib/options')
+import { describe, it, before, beforeEach, after, afterEach } from 'mocha'
+import sinon from 'sinon'
+import { assert } from 'chai'
+import { URL } from 'url'
+import browser from 'sinon-chrome'
+import { initState } from '../../../add-on/src/lib/state.js'
+import createRuntimeChecks from '../../../add-on/src/lib/runtime-checks.js'
+import { createRequestModifier } from '../../../add-on/src/lib/ipfs-request.js'
+import createDnslinkResolver from '../../../add-on/src/lib/dnslink.js'
+import { createIpfsPathValidator } from '../../../add-on/src/lib/ipfs-path.js'
+import { optionDefaults } from '../../../add-on/src/lib/options.js'
 
-const url2request = (url, type = 'main_frame') => {
-  return { url, type }
+browser.runtime.id = 'testid'
+
+const url2request = (url, type = 'main_frame', tabId = new Date().valueOf()) => {
+  return { url, type, tabId }
 }
 const urlRequestWithStatus = (url, statusCode = 200, type = 'main_frame') => {
   return { ...url2request(url, type), statusCode }
@@ -29,6 +31,7 @@ describe('requestHandler.onCompleted:', function () { // HTTP-level errors
     global.URL = URL
     browser.tabs = { ...browser.tabs, getCurrent: sinon.stub().resolves({ id: 20 }) }
     global.browser = browser
+    browser.runtime.id = 'testid'
   })
 
   beforeEach(async function () {
@@ -54,7 +57,7 @@ describe('requestHandler.onCompleted:', function () { // HTTP-level errors
     it('should redirect to default subdomain gateway on broken subdomain gateway request', async function () {
       const request = urlRequestWithStatus('http://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.brokenexample.com/wiki/', 500)
       await requestHandler.onCompleted(request)
-      assert.ok(browser.tabs.update.withArgs({ url: 'https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.dweb.link/wiki/', active: true }).calledOnce, 'tabs.update should be called with default subdomain gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: 'https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.dweb.link/wiki/', active: true }).calledOnce, 'tabs.update should be called with default subdomain gateway URL')
     })
     it('should do nothing if broken request is a non-IPFS request', async function () {
       const request = urlRequestWithStatus('https://wikipedia.org', 500)
@@ -89,7 +92,7 @@ describe('requestHandler.onCompleted:', function () { // HTTP-level errors
     it('should recover from unreachable third party public gateway by reopening on the public gateway', async function () {
       const request = urlRequestWithStatus('https://nondefaultipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h', 500)
       await requestHandler.onCompleted(request)
-      assert.ok(browser.tabs.update.withArgs({ url: 'https://ipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h', active: true }).calledOnce, 'tabs.update should be called with IPFS default public gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: 'https://ipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h', active: true }).calledOnce, 'tabs.update should be called with IPFS default public gateway URL')
     })
   })
 
@@ -153,7 +156,7 @@ describe('requestHandler.onErrorOccurred:', function () { // network errors
     it('should redirect to default subdomain gateway on failed subdomain gateway request', async function () {
       const request = urlRequestWithStatus('http://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.brokenexample.com/wiki/', 500)
       await requestHandler.onErrorOccurred(request)
-      assert.ok(browser.tabs.update.withArgs({ url: 'https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.dweb.link/wiki/', active: true }).calledOnce, 'tabs.update should be called with default subdomain gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: 'https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.dweb.link/wiki/', active: true }).calledOnce, 'tabs.update should be called with default subdomain gateway URL')
     })
     it('should do nothing if failed request is a non-IPFS request', async function () {
       const request = urlRequestWithNetworkError('https://wikipedia.org')
@@ -179,7 +182,7 @@ describe('requestHandler.onErrorOccurred:', function () { // network errors
     it('should recover from unreachable third party public gateway by reopening on the public gateway', async function () {
       const request = urlRequestWithNetworkError('https://nondefaultipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h')
       await requestHandler.onErrorOccurred(request)
-      assert.ok(browser.tabs.update.withArgs({ url: 'https://ipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h', active: true }).calledOnce, 'tabs.update should be called with IPFS default public gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: 'https://ipfs.io/ipfs/QmYbZgeWE7y8HXkH8zbb8J9ddHQvp8LTqm6isL791eo14h', active: true }).calledOnce, 'tabs.update should be called with IPFS default public gateway URL')
     })
     it('should recover from unreachable HTTP server by reopening DNSLink on the active gateway', async function () {
       state.dnslinkPolicy = 'best-effort'
@@ -188,7 +191,7 @@ describe('requestHandler.onErrorOccurred:', function () { // network errors
       const expectedUrl = 'http://localhost:8080/ipns/en.wikipedia-on-ipfs.org/'
       const request = urlRequestWithNetworkError('https://en.wikipedia-on-ipfs.org/')
       await requestHandler.onErrorOccurred(request)
-      assert.ok(browser.tabs.update.withArgs({ url: expectedUrl, active: true }).calledOnce, 'tabs.update should be called with DNSLink on local gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: expectedUrl, active: true }).calledOnce, 'tabs.update should be called with DNSLink on local gateway URL')
       dnslinkResolver.clearCache()
     })
     it('should recover from failed DNS for .eth opening it on EthDNS gateway at .eth.link', async function () {
@@ -199,7 +202,7 @@ describe('requestHandler.onErrorOccurred:', function () { // network errors
       const expectedUrl = 'https://almonit.eth.link/'
       const request = urlRequestWithNetworkError('https://almonit.eth', dnsFailure)
       await requestHandler.onErrorOccurred(request)
-      assert.ok(browser.tabs.update.withArgs({ url: expectedUrl, active: true }).calledOnce, 'tabs.update should be called with ENS resource on local gateway URL')
+      assert.ok(browser.tabs.update.withArgs(request.tabId, { url: expectedUrl, active: true }).calledOnce, 'tabs.update should be called with ENS resource on local gateway URL')
       dnslinkResolver.clearCache()
     })
   })

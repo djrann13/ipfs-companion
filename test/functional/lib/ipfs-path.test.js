@@ -1,19 +1,13 @@
 'use strict'
-const { stub } = require('sinon')
-const { describe, it, beforeEach, afterEach } = require('mocha')
-const { expect } = require('chai')
-const { URL } = require('url')
-const { ipfsContentPath, createIpfsPathValidator, sameGateway } = require('../../../add-on/src/lib/ipfs-path')
-const { initState } = require('../../../add-on/src/lib/state')
-const createDnslinkResolver = require('../../../add-on/src/lib/dnslink')
-const { optionDefaults } = require('../../../add-on/src/lib/options')
-const { spoofCachedDnslink } = require('./dnslink.test.js')
-
-function spoofIpnsRecord (ipfs, ipnsPath, value) {
-  const resolve = stub(ipfs.name, 'resolve')
-  resolve.withArgs(ipnsPath).resolves(value)
-  resolve.throws((arg) => new Error(`Unexpected stubbed call ipfs.name.resolve(${arg})`))
-}
+import { stub } from 'sinon'
+import { describe, it, beforeEach, afterEach } from 'mocha'
+import { expect } from 'chai'
+import { URL } from 'url'
+import { ipfsUri, ipfsContentPath, createIpfsPathValidator, sameGateway, safeHostname } from '../../../add-on/src/lib/ipfs-path.js'
+import { initState } from '../../../add-on/src/lib/state.js'
+import createDnslinkResolver from '../../../add-on/src/lib/dnslink.js'
+import { optionDefaults } from '../../../add-on/src/lib/options.js'
+import { spoofCachedDnslink } from './dnslink.test.js'
 
 function spoofIpfsResolve (ipfs, path, value) {
   const resolve = stub(ipfs, 'resolve')
@@ -47,6 +41,7 @@ describe('ipfs-path.js', function () {
     if (ipfs.resolve.reset) ipfs.resolve.reset()
   })
 
+  // TODO: move to some lib?
   describe('ipfsContentPath', function () {
     it('should detect /ipfs/ path in URL from a public gateway', function () {
       const url = 'https://ipfs.io/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR/foo/bar'
@@ -92,6 +87,18 @@ describe('ipfs-path.js', function () {
       const url = 'https://bafybeicgmdpvw4duutrmdxl4a7gc52sxyuk7nz5gby77afwdteh3jc5bqa.ipfs.dweb.link/wiki/Mars.html?argTest#hashTest'
       expect(ipfsContentPath(url)).to.equal('/ipfs/bafybeicgmdpvw4duutrmdxl4a7gc52sxyuk7nz5gby77afwdteh3jc5bqa/wiki/Mars.html')
     })
+    it('should resolve CID(libp2p-key)-in-subdomain URL to IPNS path', function () {
+      const url = 'https://k2k4r8ncs1yoluq95unsd7x2vfhgve0ncjoggwqx9vyh3vl8warrcp15.ipns.dweb.link/wiki/Mars.html?argTest#hashTest'
+      expect(ipfsContentPath(url)).to.equal('/ipns/k2k4r8ncs1yoluq95unsd7x2vfhgve0ncjoggwqx9vyh3vl8warrcp15/wiki/Mars.html')
+    })
+    it('should resolve dnslink-in-subdomain URL to IPNS path', function () {
+      const url = 'http://en.wikipedia-on-ipfs.org.ipns.localhost:8080/wiki/Mars.html?argTest#hashTest'
+      expect(ipfsContentPath(url)).to.equal('/ipns/en.wikipedia-on-ipfs.org/wiki/Mars.html')
+    })
+    it('should resolve inlined-dnslink-in-subdomain URL to IPNS path', function () {
+      const url = 'https://en-wikipedia--on--ipfs-org.ipns.dweb.link/wiki/Mars.html?argTest#hashTest'
+      expect(ipfsContentPath(url)).to.equal('/ipns/en.wikipedia-on-ipfs.org/wiki/Mars.html')
+    })
     it('should return null if there is no valid path for input URL', function () {
       const url = 'https://foo.io/invalid/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest'
       expect(ipfsContentPath(url)).to.equal(null)
@@ -99,6 +106,65 @@ describe('ipfs-path.js', function () {
     it('should return null if there is no valid path for input path', function () {
       const path = '/invalid/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR'
       expect(ipfsContentPath(path)).to.equal(null)
+    })
+  })
+
+  describe('safeHostname', function () {
+    it('should return URL.hostname on http URL', function () {
+      const url = 'https://example.com:8080/path/file.txt'
+      expect(safeHostname(url)).to.equal('example.com')
+    })
+    it('should return null on error', function () {
+      const url = ''
+      expect(safeHostname(url)).to.equal(null)
+    })
+  })
+
+  // TODO: move to some lib?
+  describe('ipfsUri', function () {
+    it('should detect /ipfs/ path in URL from a public gateway', function () {
+      const url = 'https://ipfs.io/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR/foo/bar'
+      expect(ipfsUri(url)).to.equal('ipfs://QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR/foo/bar')
+    })
+    it('should detect /ipfs/ path in detached IPFS path', function () {
+      const path = '/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR/foo/bar'
+      expect(ipfsUri(path)).to.equal('ipfs://QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR/foo/bar')
+    })
+    it('should detect /ipns/ path in URL from a public gateway', function () {
+      const url = 'https://ipfs.io/ipns/libp2p.io/bundles/'
+      expect(ipfsUri(url)).to.equal('ipns://libp2p.io/bundles/')
+    })
+    it('should detect /ipns/ path in detached IPFS path', function () {
+      const path = '/ipns/libp2p.io/bundles/'
+      expect(ipfsUri(path)).to.equal('ipns://libp2p.io/bundles/')
+    })
+    it('should keep search and hash from original URL', function () {
+      const url = 'https://ipfs.io/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest'
+      expect(ipfsUri(url)).to.equal('ipfs://QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest')
+    })
+    it('should preserve search and hash in detached IPFS path', function () {
+      const path = '/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest'
+      expect(ipfsUri(path)).to.equal('ipfs://QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest')
+    })
+    it('should decode special characters in URL', function () {
+      const url = 'https://ipfs.io/ipfs/Qmb8wsGZNXt5VXZh1pEmYynjB6Euqpq3HYyeAdw2vScTkQ/1%20-%20Barrel%20-%20Part%201'
+      expect(ipfsUri(url)).to.equal('ipfs://Qmb8wsGZNXt5VXZh1pEmYynjB6Euqpq3HYyeAdw2vScTkQ/1 - Barrel - Part 1')
+    })
+    it('should decode special characters in path', function () {
+      const path = '/ipfs/Qmb8wsGZNXt5VXZh1pEmYynjB6Euqpq3HYyeAdw2vScTkQ/1%20-%20Barrel%20-%20Part%201'
+      expect(ipfsUri(path)).to.equal('ipfs://Qmb8wsGZNXt5VXZh1pEmYynjB6Euqpq3HYyeAdw2vScTkQ/1 - Barrel - Part 1')
+    })
+    it('should resolve CID-in-subdomain URL to IPFS path', function () {
+      const url = 'https://bafybeicgmdpvw4duutrmdxl4a7gc52sxyuk7nz5gby77afwdteh3jc5bqa.ipfs.dweb.link/wiki/Mars.html?argTest#hashTest'
+      expect(ipfsUri(url)).to.equal('ipfs://bafybeicgmdpvw4duutrmdxl4a7gc52sxyuk7nz5gby77afwdteh3jc5bqa/wiki/Mars.html?argTest#hashTest')
+    })
+    it('should return null if there is no valid path for input URL', function () {
+      const url = 'https://foo.io/invalid/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR?argTest#hashTest'
+      expect(ipfsUri(url)).to.equal(null)
+    })
+    it('should return null if there is no valid path for input path', function () {
+      const path = '/invalid/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR'
+      expect(ipfsUri(path)).to.equal(null)
     })
   })
 
@@ -342,12 +408,12 @@ describe('ipfs-path.js', function () {
     it('should resolve URL with /ipns/ path to the immutable /ipfs/ path', async function () {
       const url = 'https://example.com/ipns/docs.ipfs.io/?argTest#hashTest'
       const ipnsPointer = '/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR'
-      spoofIpnsRecord(ipfs, '/ipns/docs.ipfs.io', ipnsPointer)
+      spoofIpfsResolve(ipfs, '/ipns/docs.ipfs.io', ipnsPointer)
       expect(await ipfsPathValidator.resolveToImmutableIpfsPath(url)).to.equal(ipnsPointer + '/?argTest#hashTest')
     })
     it('should resolve /ipns/ path to the immutable /ipfs/ one', async function () {
       const ipnsPointer = '/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR'
-      spoofIpnsRecord(ipfs, '/ipns/libp2p.io', ipnsPointer)
+      spoofIpfsResolve(ipfs, '/ipns/libp2p.io', ipnsPointer)
       const path = '/ipns/libp2p.io/?argTest#hashTest'
       expect(await ipfsPathValidator.resolveToImmutableIpfsPath(path)).to.equal(ipnsPointer + '/?argTest#hashTest')
     })
@@ -367,23 +433,7 @@ describe('ipfs-path.js', function () {
       // We need to spoof IPNS lookup for /ipns/<fqdn> because value from DNSLink cache
       // may be out of date and resolveToImmutableIpfsPath does additional resolv
       // to return latest IPNS value
-      spoofIpnsRecord(ipfs, `/ipns/${hostname}`, ipnsPointer)
-      expect(await ipfsPathValidator.resolveToImmutableIpfsPath(url)).to.equal(ipnsPointer + '/guides/concepts/dnslink/?argTest#hashTest')
-    })
-    // TODO: remove when https://github.com/ipfs/js-ipfs/issues/1918 is addressed
-    it('should resolve URL of a DNSLink website to the immutable /ipfs/ address behind mutable /ipns/ DNSLink in cache (js-ipfs fallback)', async function () {
-      const url = 'https://docs.ipfs.io/guides/concepts/dnslink/?argTest#hashTest'
-      // Use IPNS in DNSLINK to ensure resolveToImmutableIpfsPath does resursive resolv to immutable address
-      const dnslinkValue = '/ipns/QmRV5iNhGoxBaAcbucMAW9WtVHbeehXhAdr5CZQDhL55Xk'
-      const ipnsPointer = '/ipfs/QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR'
-      const { hostname } = new URL(url)
-      spoofCachedDnslink(hostname, dnslinkResolver, dnslinkValue)
-      // js-ipfs v0.34 does not support DNSLinks in ipfs.name.resolve: https://github.com/ipfs/js-ipfs/issues/1918
-      const resolve = stub(ipfs.name, 'resolve')
-      resolve.withArgs(`/ipns/${hostname}`).throws(new Error('Non-base58 character'))
-      // until it is implemented, we have a workaround that falls back to value from dnslink
-      resolve.withArgs(dnslinkValue).resolves(ipnsPointer)
-      resolve.throws((arg) => new Error(`Unexpected stubbed call ipfs.name.resolve(${arg})`))
+      spoofIpfsResolve(ipfs, `/ipns/${hostname}`, ipnsPointer)
       expect(await ipfsPathValidator.resolveToImmutableIpfsPath(url)).to.equal(ipnsPointer + '/guides/concepts/dnslink/?argTest#hashTest')
     })
     it('should resolve to null if input is an invalid path', async function () {

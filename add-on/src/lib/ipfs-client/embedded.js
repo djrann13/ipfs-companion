@@ -1,46 +1,41 @@
 'use strict'
 
-const debug = require('debug')
+import debug from 'debug'
+
+import mergeOptions from 'merge-options'
+import { create } from 'ipfs-core'
+import { optionDefaults } from '../options.js'
 const log = debug('ipfs-companion:client:embedded')
 log.error = debug('ipfs-companion:client:embedded:error')
 
-const mergeOptions = require('merge-options')
-const Ipfs = require('ipfs')
-const { optionDefaults } = require('../options')
-
 let node = null
 
-exports.init = function init (opts) {
+export async function init (browser, opts) {
   log('init')
-
   const defaultOpts = JSON.parse(optionDefaults.ipfsNodeConfig)
   const userOpts = JSON.parse(opts.ipfsNodeConfig)
-  const ipfsOpts = mergeOptions(defaultOpts, userOpts, { start: false })
-
-  node = new Ipfs(ipfsOpts)
-
-  return new Promise((resolve, reject) => {
-    node.once('error', (error) => {
-      log.error('something went terribly wrong during startup of js-ipfs!', error)
-      reject(error)
-    })
-    node.once('ready', async () => {
-      node.once('start', () => {
-        resolve(node)
-      })
-      node.on('error', error => {
-        log.error('something went terribly wrong in embedded js-ipfs!', error)
-      })
-      try {
-        await node.start()
-      } catch (err) {
-        reject(err)
-      }
-    })
-  })
+  const ipfsOpts = mergeOptions(defaultOpts, userOpts, { start: true })
+  const missing = (array) => (!Array.isArray(array) || !array.length)
+  const { Addresses } = ipfsOpts.config
+  if (missing(Addresses.Swarm)) {
+    Addresses.Swarm = [
+      '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star',
+      '/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star'
+    ]
+  }
+  if (missing(ipfsOpts.Delegates)) {
+    Addresses.Delegates = [
+      '/dns4/node0.delegate.ipfs.io/tcp/443/https',
+      '/dns4/node1.delegate.ipfs.io/tcp/443/https',
+      '/dns4/node2.delegate.ipfs.io/tcp/443/https',
+      '/dns4/node3.delegate.ipfs.io/tcp/443/https'
+    ]
+  }
+  node = await create(ipfsOpts)
+  return node
 }
 
-exports.destroy = async function () {
+export async function destroy (browser) {
   log('destroy')
   if (!node) return
 

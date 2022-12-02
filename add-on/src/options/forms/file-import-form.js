@@ -1,11 +1,13 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const html = require('choo/html')
-const switchToggle = require('../../pages/components/switch-toggle')
+import browser from 'webextension-polyfill'
+import html from 'choo/html/index.js'
+import switchToggle from '../../pages/components/switch-toggle.js'
 
-function fileImportForm ({ importDir, openViaWebUI, preloadAtPublicGateway, onOptionChange }) {
+export default function fileImportForm ({
+  importDir, openViaWebUI, preloadAtPublicGateway, onOptionChange
+}) {
   const onImportDirChange = onOptionChange('importDir')
   const onOpenViaWebUIChange = onOptionChange('openViaWebUI')
   const onPreloadAtPublicGatewayChange = onOptionChange('preloadAtPublicGateway')
@@ -19,7 +21,7 @@ function fileImportForm ({ importDir, openViaWebUI, preloadAtPublicGateway, onOp
               <dt>${browser.i18n.getMessage('option_importDir_title')}</dt>
               <dd>
                 ${browser.i18n.getMessage('option_importDir_description')}
-                <p><a class="link underline hover-aqua" href="https://docs.ipfs.io/concepts/file-systems/#mutable-file-system-mfs" target="_blank">
+                <p><a class="link underline hover-aqua" href="https://docs.ipfs.tech/concepts/file-systems/#mutable-file-system-mfs" target="_blank">
                   ${browser.i18n.getMessage('option_legend_readMore')}
                 </a></p>
               </dd>
@@ -56,5 +58,3 @@ function fileImportForm ({ importDir, openViaWebUI, preloadAtPublicGateway, onOp
     </form>
   `
 }
-
-module.exports = fileImportForm

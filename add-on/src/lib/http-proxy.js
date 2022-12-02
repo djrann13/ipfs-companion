@@ -1,10 +1,10 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const { safeURL } = require('./options')
+import browser from 'webextension-polyfill'
+import { safeURL } from './options.js'
 
-const debug = require('debug')
+import debug from 'debug'
 const log = debug('ipfs-companion:http-proxy')
 log.error = debug('ipfs-companion:http-proxy:error')
 
@@ -13,7 +13,7 @@ log.error = debug('ipfs-companion:http-proxy:error')
 // When go-ipfs runs on localhost, it exposes two types of gateway:
 // 127.0.0.1:8080 - old school path gateway
 // localhost:8080 - subdomain gateway supporting Origins like $cid.ipfs.localhost
-// More: https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway
+// More: https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway
 //
 // In a web browser contexts we care about Origin per content root (CID)
 // because entire web security model uses it as a basis for sandboxing and
@@ -30,7 +30,7 @@ log.error = debug('ipfs-companion:http-proxy:error')
 // - Firefox requires proxy to avoid DNS lookup, but there is an open issue
 //   that will remove that need at some point:
 //   https://bugzilla.mozilla.org/show_bug.cgi?id=1220810
-async function registerSubdomainProxy (getState, runtime, notify) {
+export async function registerSubdomainProxy (getState, runtime, notify) {
   // At the moment only firefox requires proxy registration
   if (!runtime.isFirefox) return
 
@@ -64,7 +64,7 @@ async function registerSubdomainProxy (getState, runtime, notify) {
 }
 
 // storing listener for later
-var onRequestProxyListener
+let onRequestProxyListener
 
 // registerSubdomainProxyFirefox sets proxy using API available in Firefox
 // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/proxy/onRequest
@@ -151,5 +151,3 @@ async function registerSubdomainProxyChromium (enable, hostname, port) {
   }
 }
 */
-
-module.exports.registerSubdomainProxy = registerSubdomainProxy

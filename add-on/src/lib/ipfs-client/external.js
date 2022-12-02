@@ -1,24 +1,20 @@
 'use strict'
 /* eslint-env browser */
 
-const debug = require('debug')
+import debug from 'debug'
+
+import { create } from 'ipfs-http-client'
 const log = debug('ipfs-companion:client:external')
 log.error = debug('ipfs-companion:client:external:error')
 
-const IpfsApi = require('ipfs-http-client')
-
-exports.init = async function (opts) {
-  log(`init with API: ${opts.apiURLString}`)
-
-  const url = opts.apiURL
-  const protocol = url.protocol.substr(0, url.protocol.length - 1) // http: -> http
-  const host = url.hostname.replace(/[[\]]+/g, '') // temporary fix for ipv6: https://github.com/ipfs-shipyard/ipfs-companion/issues/668
-  const api = IpfsApi({ host, port: url.port, protocol })
+export async function init (browser, opts) {
+  log(`init with IPFS API at ${opts.apiURLString}`)
+  const clientConfig = opts.apiURLString
+  // https://github.com/ipfs/js-ipfs/tree/master/packages/ipfs-http-client#importing-the-module-and-usage
+  const api = await create(clientConfig)
   return api
 }
 
-exports.destroy = async function () {
+export async function destroy (browser) {
   log('destroy')
 }
-
-// TODO: Upgrade to a caching proxy for ipfs-http-client

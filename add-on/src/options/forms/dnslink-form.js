@@ -1,11 +1,11 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const html = require('choo/html')
-const switchToggle = require('../../pages/components/switch-toggle')
+import browser from 'webextension-polyfill'
+import html from 'choo/html/index.js'
+import switchToggle from '../../pages/components/switch-toggle.js'
 
-function dnslinkForm ({
+export default function dnslinkForm ({
   dnslinkPolicy,
   dnslinkDataPreload,
   dnslinkRedirect,
@@ -25,13 +25,13 @@ function dnslinkForm ({
               <dt>${browser.i18n.getMessage('option_dnslinkPolicy_title')}</dt>
               <dd>
                 ${browser.i18n.getMessage('option_dnslinkPolicy_description')}
-                <p><a class="link underline hover-aqua" href="https://docs.ipfs.io/how-to/dnslink-companion/" target="_blank">
+                <p><a class="link underline hover-aqua" href="https://docs.ipfs.tech/how-to/dnslink-companion/" target="_blank">
                   ${browser.i18n.getMessage('option_legend_readMore')}
                 </a></p>
               </dd>
             </dl>
           </label>
-          <select id="dnslinkPolicy" name='dnslinkPolicy' class="self-center-ns bg-white" onchange=${onDnslinkPolicyChange}>
+          <select id="dnslinkPolicy" name='dnslinkPolicy' class="self-center-ns bg-white navy" onchange=${onDnslinkPolicyChange}>
             <option
               value='false'
               selected=${String(dnslinkPolicy) === 'false'}>
@@ -65,7 +65,7 @@ function dnslinkForm ({
               <dd>
                 ${browser.i18n.getMessage('option_dnslinkRedirect_description')}
                 ${dnslinkRedirect ? html`<p class="red i">${browser.i18n.getMessage('option_dnslinkRedirect_warning')}</p>` : null}
-                <p><a class="link underline hover-aqua" href="https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway" target="_blank">
+                <p><a class="link underline hover-aqua" href="https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway" target="_blank">
                   ${browser.i18n.getMessage('option_legend_readMore')}
                 </a></p>
               </dd>
@@ -77,5 +77,3 @@ function dnslinkForm ({
     </form>
   `
 }
-
-module.exports = dnslinkForm

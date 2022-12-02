@@ -1,26 +1,32 @@
 'use strict'
 
-const browser = require('webextension-polyfill')
+import browser from 'webextension-polyfill'
+import debug from 'debug'
+const log = debug('ipfs-companion:notifier')
+log.error = debug('ipfs-companion:notifier:error')
 
-function createNotifier (getState) {
-  return (titleKey, messageKey, messageParam) => {
+export default function createNotifier (getState) {
+  const { getMessage } = browser.i18n
+  return async (titleKey, messageKey, messageParam) => {
     const title = browser.i18n.getMessage(titleKey) || titleKey
     let message
     if (messageKey.startsWith('notify_')) {
-      message = messageParam ? browser.i18n.getMessage(messageKey, messageParam) : browser.i18n.getMessage(messageKey)
+      message = messageParam ? getMessage(messageKey, messageParam) : getMessage(messageKey)
     } else {
       message = messageKey
     }
+    log(`${title}: ${message}`)
     if (getState().displayNotifications && browser && browser.notifications.create) {
-      browser.notifications.create({
-        type: 'basic',
-        iconUrl: browser.extension.getURL('icons/ipfs-logo-on.svg'),
-        title: title,
-        message: message
-      }).catch(err => console.warn(`[ipfs-companion] Browser notification failed: ${err.message}`))
+      try {
+        return await browser.notifications.create({
+          type: 'basic',
+          iconUrl: browser.runtime.getURL('icons/ipfs-logo-on.svg'),
+          title: title,
+          message: message
+        })
+      } catch (err) {
+        log.error('failed to create a notification', err)
+      }
     }
-    console.info(`[ipfs-companion] ${title}: ${message}`)
   }
 }
-
-module.exports = createNotifier

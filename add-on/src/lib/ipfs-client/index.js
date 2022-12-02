@@ -2,102 +2,110 @@
 
 /* eslint-env browser, webextensions */
 
-const debug = require('debug')
+import debug from 'debug'
+
+import * as external from './external.js'
+import * as embedded from './embedded.js'
+import * as brave from './brave.js'
+import { precache } from '../precache.js'
+import {
+  prepareReloadExtensions, WebUiReloader, LocalGatewayReloader, InternalTabReloader
+} from './reloaders/index.js'
 const log = debug('ipfs-companion:client')
 log.error = debug('ipfs-companion:client:error')
 
-const browser = require('webextension-polyfill')
-const external = require('./external')
-const embedded = require('./embedded')
-const embeddedWithChromeSockets = require('./embedded-chromesockets')
-const { precache } = require('../precache')
-
+// ensure single client at all times, and no overlap between init and destroy
 let client
 
-async function initIpfsClient (opts) {
+export async function initIpfsClient (browser, opts) {
   log('init ipfs client')
-  await destroyIpfsClient()
+  if (client) return // await destroyIpfsClient()
+  let backend
   switch (opts.ipfsNodeType) {
-    case 'embedded':
-      client = embedded
-      break
     case 'embedded:chromesockets':
-      client = embeddedWithChromeSockets
+      // TODO: remove this one-time migration after in second half of 2021
+      setTimeout(async () => {
+        log('converting embedded:chromesockets to native external:brave')
+        opts.ipfsNodeType = 'external:brave'
+        await browser.storage.local.set({
+          ipfsNodeType: 'external:brave',
+          ipfsNodeConfig: '{}' // remove chrome-apps config
+        })
+        await browser.tabs.create({ url: 'https://docs.ipfs.tech/how-to/companion-node-types/#native' })
+      }, 0)
+      // Halt client init
+      throw new Error('Embedded + chrome.sockets is deprecated. Switching to Native IPFS in Brave.')
+    case 'embedded':
+      backend = embedded
+      break
+    case 'external:brave':
+      backend = brave
       break
     case 'external':
-      client = external
+      backend = external
       break
     default:
       throw new Error(`Unsupported ipfsNodeType: ${opts.ipfsNodeType}`)
   }
-
-  const instance = await client.init(opts)
-  easeApiChanges(instance)
-  _reloadIpfsClientDependents(instance) // async (API is present)
+  const instance = await backend.init(browser, opts)
+  _reloadIpfsClientDependents(browser, instance, opts) // async (API is present)
+  client = backend
   return instance
 }
 
-async function destroyIpfsClient () {
-  if (client && client.destroy) {
-    try {
-      await client.destroy()
-    } finally {
-      client = null
-      await _reloadIpfsClientDependents() // sync (API stopped working)
-    }
+export async function destroyIpfsClient (browser) {
+  log('destroy ipfs client')
+  if (!client) return
+  try {
+    await client.destroy(browser)
+    await _reloadIpfsClientDependents(browser) // sync (API stopped working)
+  } finally {
+    client = null
   }
 }
 
-function _isWebuiTab (url) {
-  const bundled = !url.startsWith('http') && url.includes('/webui/index.html#/')
-  const ipns = url.includes('/webui.ipfs.io/#/')
-  return bundled || ipns
-}
-
-async function _reloadIpfsClientDependents (instance, opts) {
+/**
+ * Reloads pages dependant on ipfs to be online
+ *
+ * @typedef {embedded|brave|external} Browser
+ * @param {Browser} browser
+ * @param {import('ipfs-http-client').default} instance
+ * @param {Object} opts
+ * @param {Array.[InternalTabReloader|LocalGatewayReloader|WebUiReloader]=} reloadExtensions
+ * @returns {void}
+ */
+async function _reloadIpfsClientDependents (
+  browser, instance, opts, reloadExtensions = [WebUiReloader, LocalGatewayReloader, InternalTabReloader]) {
   // online || offline
   if (browser.tabs && browser.tabs.query) {
     const tabs = await browser.tabs.query({})
     if (tabs) {
-      tabs.forEach((tab) => {
-        // detect bundled webui in any of open tabs
-        if (_isWebuiTab(tab.url)) {
-          browser.tabs.reload(tab.id)
-          log('reloading bundled webui')
-        }
-      })
+      try {
+        const reloadExtensionInstances = await prepareReloadExtensions(reloadExtensions, browser, log)
+        // the reload process is async, fire and forget.
+        reloadExtensionInstances.forEach(ext => ext.reload(tabs))
+      } catch (e) {
+        log('Failed to trigger reloaders')
+      }
     }
   }
+
   // online only
-  if (client && instance) {
+  if (client && instance && opts) {
     // add important data to local ipfs repo for instant load
-    setTimeout(() => precache(instance), 10000)
+    setTimeout(() => precache(instance, opts), 5000)
   }
 }
 
-const movedFilesApis = ['add', 'addPullStream', 'addReadableStream', 'cat', 'catPullStream', 'catReadableStream', 'get', 'getPullStream', 'getReadableStream']
-
-// This enables use of dependencies without worrying if they already migrated to the new API.
-function easeApiChanges (ipfs) {
-  if (!ipfs) return
-  // Handle the move of regular files api to top level
-  // https://github.com/ipfs/interface-ipfs-core/pull/378
-  // https://github.com/ipfs/js-ipfs/releases/tag/v0.34.0-pre.0
-  movedFilesApis.forEach(cmd => {
-    // Fix old backend (add new methods)
-    if (typeof ipfs[cmd] !== 'function' && ipfs.files && typeof ipfs.files[cmd] === 'function') {
-      ipfs[cmd] = ipfs.files[cmd]
-      // console.log(`[ipfs-companion] fixed missing ipfs.${cmd}: added an alias for ipfs.files.${cmd}`)
-    }
-    // Fix new backend (add old methods)
-    // This ensures ipfs-postmsg-proxy always works and can be migrated later
-    if (ipfs.files && typeof ipfs.files[cmd] !== 'function' && typeof ipfs[cmd] === 'function') {
-      ipfs.files[cmd] = ipfs[cmd]
-      // console.log(`[ipfs-companion] fixed missing ipfs.files.${cmd}: added an alias for ipfs.${cmd}`)
-    }
-  })
+/**
+ * Reloads local gateway pages dependant on ipfs to be online
+ *
+ * @typedef {embedded|brave|external} Browser
+ * @param {Browser} browser
+ * @param {import('ipfs-http-client').default} instance
+ * @param {Object} opts
+ * @returns {void}
+ */
+export function reloadIpfsClientOfflinePages (browser, instance, opts) {
+  _reloadIpfsClientDependents(browser, instance, opts, [LocalGatewayReloader])
 }
-
-exports.movedFilesApis = movedFilesApis
-exports.initIpfsClient = initIpfsClient
-exports.destroyIpfsClient = destroyIpfsClient

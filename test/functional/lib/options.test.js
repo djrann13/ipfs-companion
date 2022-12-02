@@ -1,12 +1,15 @@
 'use strict'
-const { describe, it, beforeEach, after } = require('mocha')
-const { expect } = require('chai')
-const sinon = require('sinon')
-const browser = require('sinon-chrome')
-const { storeMissingOptions, optionDefaults, hostTextToArray, hostArrayToText } = require('../../../add-on/src/lib/options')
+import { describe, it, beforeEach, after } from 'mocha'
+import { expect } from 'chai'
+import sinon from 'sinon'
+import browser from 'sinon-chrome'
+import { storeMissingOptions, optionDefaults, isHostname, hostTextToArray, hostArrayToText } from '../../../add-on/src/lib/options.js'
+import { URL } from 'url'
 
 describe('storeMissingOptions()', function () {
   beforeEach(() => {
+    global.URL = URL
+    browser.runtime.id = 'testid'
     browser.flush()
   })
 
@@ -59,10 +62,37 @@ describe('storeMissingOptions()', function () {
   })
 })
 
+describe('isHostname()', function () {
+  it('should return false for invalid URL.hostname', () => {
+    expect(isHostname('random text with whitespaces')).to.equal(false)
+  })
+  it('should return true for a valid URL.hostname (FQDN)', () => {
+    expect(isHostname('example.com')).to.equal(true)
+  })
+  it('should return true for a valid URL.hostname (ipv4)', () => {
+    expect(isHostname('192.168.1.1')).to.equal(true)
+  })
+  it('should return true for valid URL.hostname (ipv6 in brackets)', () => {
+    expect(isHostname('[fe80::bb67:770c:8a97:1]')).to.equal(true)
+  })
+  it('should return false for invalid URL.hostname (ipv6 without brackets)', () => {
+    expect(isHostname('fe80::bb67:770c:8a97:1')).to.equal(false)
+  })
+  it('should return false for ipv6 with a missing bracket', () => {
+    expect(
+      isHostname('[fe80::bb67:770c:8a97:1') ||
+      isHostname('fe80::bb67:770c:8a97:1]')
+    ).to.equal(false)
+  })
+  it('should return false for ipv6 with malformed brackets', () => {
+    expect(isHostname('[fe80::bb67:770c:8a97]:1]')).to.equal(false)
+  })
+})
+
 describe('hostTextToArray()', function () {
   it('should sort, dedup hostnames, drop non-FQDNs and produce an array', () => {
-    const text = 'zombo.com\n two.com  \n totally not a FQDN \none.pl \nTWO.com\n\n'
-    const array = ['one.pl', 'two.com', 'zombo.com']
+    const text = 'zombo.com\n TwO.com \n 192.168.1.1:58080 \n192.168.1.2\n[fe80::bb67:770c:8a97:1]:58080\nfe80::bb67:770c:8a97:2\n[fe80::bb67:770c:8a97:3]\n totally not a FQDN \none.pl \nTWO.com\n\n'
+    const array = ['192.168.1.1', '192.168.1.2', '[fe80::bb67:770c:8a97:1]', '[fe80::bb67:770c:8a97:2]', '[fe80::bb67:770c:8a97:3]', 'one.pl', 'two.com', 'zombo.com']
     expect(hostTextToArray(text)).to.be.an('array').to.have.ordered.members(array)
   })
 })

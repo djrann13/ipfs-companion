@@ -1,19 +1,20 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const html = require('choo/html')
-const globalToggleForm = require('./forms/global-toggle-form')
-const ipfsNodeForm = require('./forms/ipfs-node-form')
-const fileImportForm = require('./forms/file-import-form')
-const dnslinkForm = require('./forms/dnslink-form')
-const gatewaysForm = require('./forms/gateways-form')
-const apiForm = require('./forms/api-form')
-const experimentsForm = require('./forms/experiments-form')
+import html from 'choo/html/index.js'
+import globalToggleForm from './forms/global-toggle-form.js'
+import ipfsNodeForm from './forms/ipfs-node-form.js'
+import fileImportForm from './forms/file-import-form.js'
+import dnslinkForm from './forms/dnslink-form.js'
+import gatewaysForm from './forms/gateways-form.js'
+import apiForm from './forms/api-form.js'
+import experimentsForm from './forms/experiments-form.js'
+import resetForm from './forms/reset-form.js'
 
 // Render the options page:
 // Passed current app `state` from the store and `emit`, a function to create
 // events, allowing views to signal back to the store that something happened.
-module.exports = function optionsPage (state, emit) {
+export default function optionsPage (state, emit) {
   const onOptionChange = (key, modifyValue) => (e) => {
     e.preventDefault()
 
@@ -55,14 +56,18 @@ module.exports = function optionsPage (state, emit) {
   ${ipfsNodeForm({
     ipfsNodeType: state.options.ipfsNodeType,
     ipfsNodeConfig: state.options.ipfsNodeConfig,
+    withNodeFromBrave: state.withNodeFromBrave,
     onOptionChange
   })}
-  ${state.options.ipfsNodeType === 'external' ? apiForm({
+  ${state.options.ipfsNodeType.startsWith('external')
+  ? apiForm({
+    ipfsNodeType: state.options.ipfsNodeType,
     ipfsApiUrl: state.options.ipfsApiUrl,
     ipfsApiPollMs: state.options.ipfsApiPollMs,
     automaticMode: state.options.automaticMode,
     onOptionChange
-  }) : null}
+  })
+  : null}
   ${gatewaysForm({
     ipfsNodeType: state.options.ipfsNodeType,
     customGatewayUrl: state.options.customGatewayUrl,
@@ -70,7 +75,8 @@ module.exports = function optionsPage (state, emit) {
     useSubdomains: state.options.useSubdomains,
     publicGatewayUrl: state.options.publicGatewayUrl,
     publicSubdomainGatewayUrl: state.options.publicSubdomainGatewayUrl,
-    noIntegrationsHostnames: state.options.noIntegrationsHostnames,
+    disabledOn: state.options.disabledOn,
+    enabledOn: state.options.enabledOn,
     onOptionChange
   })}
   ${fileImportForm({
@@ -86,14 +92,17 @@ module.exports = function optionsPage (state, emit) {
     onOptionChange
   })}
   ${experimentsForm({
+    useLatestWebUI: state.options.useLatestWebUI,
     displayNotifications: state.options.displayNotifications,
+    displayReleaseNotes: state.options.displayReleaseNotes,
     catchUnhandledProtocols: state.options.catchUnhandledProtocols,
     linkify: state.options.linkify,
     recoverFailedHttpRequests: state.options.recoverFailedHttpRequests,
     detectIpfsPathHeader: state.options.detectIpfsPathHeader,
-    ipfsProxy: state.options.ipfsProxy,
     logNamespaces: state.options.logNamespaces,
-    onOptionChange,
+    onOptionChange
+  })}
+  ${resetForm({
     onOptionsReset
   })}
     </div>

@@ -1,11 +1,10 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const { safeURL } = require('./options')
-const { precachedWebuiCid } = require('./precache')
-const offlinePeerCount = -1
+import { safeURL, isHostname } from './options.js'
 
-function initState (options, overrides) {
+export const offlinePeerCount = -1
+export function initState (options, overrides) {
   // we store options and some pregenerated values to avoid async storage
   // reads and minimize performance impact on overall browsing experience
   const state = Object.assign({}, options)
@@ -31,8 +30,12 @@ function initState (options, overrides) {
   state.activeIntegrations = (url) => {
     if (!state.active) return false
     try {
-      const fqdn = new URL(url).hostname
-      return !(state.noIntegrationsHostnames.find(host => fqdn.endsWith(host)))
+      const hostname = isHostname(url) ? url : new URL(url).hostname
+      // opt-out has more weight, we also match parent domains
+      const disabledDirectlyOrIndirectly = state.disabledOn.some(optout => hostname.endsWith(optout))
+      // ..however direct opt-in should overwrite parent's opt-out
+      const enabledDirectly = state.enabledOn.some(optin => optin === hostname)
+      return !(disabledDirectlyOrIndirectly && !enabledDirectly)
     } catch (_) {
       return false
     }
@@ -45,18 +48,12 @@ function initState (options, overrides) {
   })
   Object.defineProperty(state, 'webuiRootUrl', {
     get: function () {
-      // Below is needed to make webui work for embedded js-ipfs
-      // TODO: revisit if below is still needed after upgrading to js-ipfs >= 44
-      const webuiUrl = state.ipfsNodeType === 'embedded:chromesockets'
-        ? `${state.gwURLString}ipfs/${precachedWebuiCid}/`
-        : `${state.apiURLString}webui`
-      return webuiUrl
+      // Did user opt-in for rolling release published on DNSLink?
+      if (state.useLatestWebUI) return `${state.gwURLString}ipns/webui.ipfs.io/`
+      return `${state.apiURLString}webui`
     }
   })
   // apply optional overrides
   if (overrides) Object.assign(state, overrides)
   return state
 }
-
-exports.initState = initState
-exports.offlinePeerCount = offlinePeerCount

@@ -1,14 +1,15 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const isIPFS = require('is-ipfs')
-const { trimHashAndSearch, ipfsContentPath } = require('../../lib/ipfs-path')
-const { welcomePage } = require('../../lib/on-installed')
-const { contextMenuViewOnGateway, contextMenuCopyAddressAtPublicGw, contextMenuCopyRawCid, contextMenuCopyCanonicalAddress } = require('../../lib/context-menus')
+import browser from 'webextension-polyfill'
+import isIPFS from 'is-ipfs'
+import { browserActionFilesCpImportCurrentTab } from '../../lib/ipfs-import.js'
+import { ipfsContentPath } from '../../lib/ipfs-path.js'
+import { welcomePage, optionsPage } from '../../lib/constants.js'
+import { contextMenuViewOnGateway, contextMenuCopyAddressAtPublicGw, contextMenuCopyPermalink, contextMenuCopyRawCid, contextMenuCopyCanonicalAddress, contextMenuCopyCidAddress } from '../../lib/context-menus.js'
 
 // The store contains and mutates the state for the app
-module.exports = (state, emitter) => {
+export default (state, emitter) => {
   Object.assign(state, {
     // Global toggles
     active: true,
@@ -16,9 +17,6 @@ module.exports = (state, emitter) => {
     // UI contexts
     isIpfsContext: false, // Active Tab represents IPFS resource
     isRedirectContext: false, // Active Tab or its subresources could be redirected
-    isPinning: false,
-    isUnPinning: false,
-    isPinned: false,
     // IPFS details
     ipfsNodeType: 'external',
     isIpfsOnline: false,
@@ -33,7 +31,8 @@ module.exports = (state, emitter) => {
     currentTab: null,
     currentFqdn: null,
     currentDnslinkFqdn: null,
-    noIntegrationsHostnames: []
+    enabledOn: [],
+    disabledOn: []
   })
 
   let port
@@ -49,12 +48,6 @@ module.exports = (state, emitter) => {
         console.log('In browser action, received message from background:', message)
         await updateBrowserActionState(status)
         emitter.emit('render')
-        if (status.isIpfsContext) {
-          // calculating pageActions states is expensive (especially pin-related checks)
-          // we update them in separate step to keep UI snappy
-          await updatePageActionsState(status)
-          emitter.emit('render')
-        }
       }
     })
     // fix for https://github.com/ipfs-shipyard/ipfs-companion/issues/318
@@ -74,63 +67,29 @@ module.exports = (state, emitter) => {
       case contextMenuCopyCanonicalAddress:
         port.postMessage({ event: contextMenuCopyCanonicalAddress })
         break
+      case contextMenuCopyCidAddress:
+        port.postMessage({ event: contextMenuCopyCidAddress })
+        break
       case contextMenuCopyRawCid:
         port.postMessage({ event: contextMenuCopyRawCid })
         break
       case contextMenuCopyAddressAtPublicGw:
         port.postMessage({ event: contextMenuCopyAddressAtPublicGw })
         break
+      case contextMenuCopyPermalink:
+        port.postMessage({ event: contextMenuCopyPermalink })
+        break
     }
     window.close()
   })
 
-  emitter.on('pin', async function pinCurrentResource () {
-    state.isPinning = true
-    emitter.emit('render')
-
-    try {
-      const ipfs = await getIpfsApi()
-      const currentPath = await resolveToPinPath(ipfs, state.currentTab.url)
-      const pinResult = await ipfs.pin.add(currentPath, { recursive: true })
-      console.log('ipfs.pin.add result', pinResult)
-      state.isPinned = true
-      notify('notify_pinnedIpfsResourceTitle', currentPath)
-    } catch (error) {
-      handlePinError('notify_pinErrorTitle', error)
-    }
-    state.isPinning = false
-    emitter.emit('render')
+  emitter.on('filesCpImport', () => {
+    port.postMessage({ event: browserActionFilesCpImportCurrentTab })
+    window.close()
   })
-
-  emitter.on('unPin', async function unPinCurrentResource () {
-    state.isUnPinning = true
-    emitter.emit('render')
-
-    try {
-      const ipfs = await getIpfsApi()
-      const currentPath = await resolveToPinPath(ipfs, state.currentTab.url)
-      const result = await ipfs.pin.rm(currentPath, { recursive: true })
-      state.isPinned = false
-      console.log('ipfs.pin.rm result', result)
-      notify('notify_unpinnedIpfsResourceTitle', currentPath)
-    } catch (error) {
-      handlePinError('notify_unpinErrorTitle', error)
-    }
-    state.isUnPinning = false
-    emitter.emit('render')
-  })
-
-  async function handlePinError (errorMessageKey, error) {
-    console.error(browser.i18n.getMessage(errorMessageKey), error)
-    try {
-      notify(errorMessageKey, error.message)
-    } catch (notifyError) {
-      console.error('Unable to notify user about pin-related error', notifyError)
-    }
-  }
 
   emitter.on('quickImport', () => {
-    browser.tabs.create({ url: browser.extension.getURL('dist/popup/quick-import.html') })
+    browser.tabs.create({ url: browser.runtime.getURL('dist/popup/quick-import.html') })
     window.close()
   })
 
@@ -153,13 +112,34 @@ module.exports = (state, emitter) => {
     }
   })
 
+  emitter.on('openReleaseNotes', async () => {
+    const { version } = browser.runtime.getManifest()
+    const stableChannel = version.match(/\./g).length === 2
+    let url
+    try {
+      if (stableChannel) {
+        url = `https://github.com/ipfs-shipyard/ipfs-companion/releases/tag/v${version}`
+        await browser.storage.local.set({ dismissedUpdate: version })
+      } else {
+        // swap URL and do not dismiss
+        url = 'https://github.com/ipfs-shipyard/ipfs-companion/issues/964'
+      }
+      // Note: opening tab needs to happen after storage.local.set because in Chromium 86
+      // it triggers a premature window.close, which aborts storage update
+      await browser.tabs.create({ url })
+      window.close()
+    } catch (error) {
+      console.error(`Unable to open release notes (${url})`, error)
+    }
+  })
+
   emitter.on('openPrefs', () => {
     browser.runtime.openOptionsPage()
       .then(() => window.close())
       .catch((err) => {
         console.error('runtime.openOptionsPage() failed, opening options page in tab instead.', err)
         // brave: fallback to opening options page as a tab.
-        browser.tabs.create({ url: browser.extension.getURL('dist/options/options.html') })
+        browser.tabs.create({ url: browser.runtime.getURL(optionsPage) })
       })
   })
 
@@ -178,34 +158,37 @@ module.exports = (state, emitter) => {
   })
 
   emitter.on('toggleSiteIntegrations', async () => {
-    state.currentTabIntegrationsOptOut = !state.currentTabIntegrationsOptOut
+    const wasOptedOut = state.currentTabIntegrationsOptOut
+    state.currentTabIntegrationsOptOut = !wasOptedOut
     emitter.emit('render')
 
     try {
-      let noIntegrationsHostnames = state.noIntegrationsHostnames
+      let { enabledOn, disabledOn, currentTab, currentDnslinkFqdn, currentFqdn } = state
       // if we are on /ipns/fqdn.tld/ then use hostname from DNSLink
-      const fqdn = state.currentDnslinkFqdn || state.currentFqdn
-      if (noIntegrationsHostnames.includes(fqdn)) {
-        noIntegrationsHostnames = noIntegrationsHostnames.filter(host => !host.endsWith(fqdn))
+      const fqdn = currentDnslinkFqdn || currentFqdn
+      if (wasOptedOut) {
+        disabledOn = disabledOn.filter(host => host !== fqdn)
+        enabledOn.push(fqdn)
       } else {
-        noIntegrationsHostnames.push(fqdn)
+        enabledOn = enabledOn.filter(host => host !== fqdn)
+        disabledOn.push(fqdn)
       }
       // console.dir('toggleSiteIntegrations', state)
-      await browser.storage.local.set({ noIntegrationsHostnames })
+      await browser.storage.local.set({ disabledOn, enabledOn })
 
+      const path = ipfsContentPath(currentTab.url, { keepURIParams: true })
       // Reload the current tab to apply updated redirect preference
-      if (!state.currentDnslinkFqdn || !isIPFS.ipnsUrl(state.currentTab.url)) {
+      if (!currentDnslinkFqdn || !isIPFS.ipnsPath(path)) {
         // No DNSLink, reload URL as-is
-        await browser.tabs.reload(state.currentTab.id)
+        await browser.tabs.reload(currentTab.id)
       } else {
         // DNSLinked websites require URL change
         // from  http?://gateway.tld/ipns/{fqdn}/some/path OR
         // from  http?://{fqdn}.ipns.gateway.tld/some/path
         // to    http://{fqdn}/some/path
         // (defaulting to http: https websites will have HSTS or a redirect)
-        const path = ipfsContentPath(state.currentTab.url, { keepURIParams: true })
         const originalUrl = path.replace(/^.*\/ipns\//, 'http://')
-        await browser.tabs.update(state.currentTab.id, {
+        await browser.tabs.update(currentTab.id, {
           // FF only: loadReplace: true,
           url: originalUrl
         })
@@ -235,28 +218,6 @@ module.exports = (state, emitter) => {
     emitter.emit('render')
   })
 
-  async function updatePageActionsState (status) {
-    // browser.pageAction-specific items that can be rendered earlier (snappy UI)
-    requestAnimationFrame(async () => {
-      const tabId = state.currentTab ? { tabId: state.currentTab.id } : null
-      if (browser.pageAction && tabId && await browser.pageAction.isShown(tabId)) {
-        // Get title stored on page load so that valid transport is displayed
-        // even if user toggles between public/custom gateway after the load
-        state.pageActionTitle = await browser.pageAction.getTitle(tabId)
-        emitter.emit('render')
-      }
-    })
-
-    if (state.isIpfsContext) {
-      // IPFS contexts require access to ipfs API object from background page
-      // Note: access to background page will be denied in Private Browsing mode
-      const ipfs = await getIpfsApi()
-      // There is no point in displaying actions that require API interaction if API is down
-      const apiIsUp = ipfs && status && status.peerCount >= 0
-      if (apiIsUp) await updatePinnedState(ipfs, status)
-    }
-  }
-
   async function updateBrowserActionState (status) {
     if (status) {
       // Copy all attributes
@@ -282,50 +243,8 @@ module.exports = (state, emitter) => {
       state.isRedirectContext = false
     }
   }
-
-  async function updatePinnedState (ipfs, status) {
-    // skip update if there is an ongoing pin or unpin
-    if (state.isPinning || state.isUnPinning) return
-    try {
-      const currentPath = await resolveToPinPath(ipfs, status.currentTab.url)
-      const response = await ipfs.pin.ls(currentPath, { type: 'recursive', quiet: true })
-      console.log(`positive ipfs.pin.ls for ${currentPath}: ${JSON.stringify(response)}`)
-      state.isPinned = true
-    } catch (error) {
-      if (/is not pinned/.test(error.message)) {
-        console.log(`negative ipfs.pin.ls: ${error} (${JSON.stringify(error)})`)
-      } else {
-        console.error(`unexpected result of ipfs.pin.ls: ${error} (${JSON.stringify(error)})`)
-      }
-      state.isPinned = false
-    }
-  }
-
-  function notify (title, message) {
-    // console.log('Sending notification (' + title + '): ' + message + ')')
-    return port.postMessage({ event: 'notification', title: title, message: message })
-  }
 }
 
 function getBackgroundPage () {
   return browser.runtime.getBackgroundPage()
-}
-
-async function getIpfsApi () {
-  const bg = await getBackgroundPage()
-  return (bg && bg.ipfsCompanion) ? bg.ipfsCompanion.ipfs : null
-}
-
-async function getIpfsPathValidator () {
-  const bg = await getBackgroundPage()
-  return (bg && bg.ipfsCompanion) ? bg.ipfsCompanion.ipfsPathValidator : null
-}
-
-async function resolveToPinPath (ipfs, url) {
-  // Prior issues:
-  // https://github.com/ipfs-shipyard/ipfs-companion/issues/567
-  // https://github.com/ipfs/ipfs-companion/issues/303
-  const pathValidator = await getIpfsPathValidator()
-  const pinPath = trimHashAndSearch(await pathValidator.resolveToImmutableIpfsPath(url))
-  return pinPath
 }

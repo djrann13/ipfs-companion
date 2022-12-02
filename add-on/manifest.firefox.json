@@ -8,15 +8,8 @@
   "applications": {
     "gecko": {
       "id": "ipfs-firefox-addon@lidel.org",
-      "strict_min_version": "68.0"
+      "strict_min_version": "91.1.0"
     }
-  },
-  "page_action": {
-    "default_icon": {
-      "128": "icons/ipfs-logo-off.svg"
-    },
-    "default_title": "__MSG_pageAction_titleNonIpfs__",
-    "default_popup": "dist/popup/page-action/index.html"
   },
   "permissions": [
     "<all_urls>",
@@ -37,32 +30,32 @@
     {
       "protocol": "web+dweb",
       "name": "IPFS Companion: DWEB Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipfs/?uri=%s"
     },
     {
       "protocol": "web+ipns",
       "name": "IPFS Companion: IPNS Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipns/?uri=%s"
     },
     {
       "protocol": "web+ipfs",
       "name": "IPFS Companion: IPFS Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipfs/?uri=%s"
     },
     {
       "protocol": "dweb",
       "name": "IPFS Companion: DWEB Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipfs/?uri=%s"
     },
     {
       "protocol": "ipns",
       "name": "IPFS Companion: IPNS Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipns/?uri=%s"
     },
     {
       "protocol": "ipfs",
       "name": "IPFS Companion: IPFS Protocol Handler",
-      "uriTemplate": "https://gateway.ipfs.io/ipfs/bafkreiewrj2pugsghd3flw2lk2fhvtmz6wipecnxep5qc5m3lfpf2mvjk4#%s"
+      "uriTemplate": "https://dweb.link/ipfs/?uri=%s"
     }
   ]
 }

@@ -1,14 +1,14 @@
 'use strict'
 /* eslint-env browser, webextensions */
 
-const browser = require('webextension-polyfill')
-const html = require('choo/html')
-const { hasChromeSocketsForTcp } = require('../../lib/runtime-checks')
+import browser from 'webextension-polyfill'
+import html from 'choo/html/index.js'
+import { braveNodeType } from '../../lib/ipfs-client/brave.js'
 
-function ipfsNodeForm ({ ipfsNodeType, ipfsNodeConfig, onOptionChange }) {
+export default function ipfsNodeForm ({ ipfsNodeType, ipfsNodeConfig, onOptionChange, withNodeFromBrave }) {
   const onIpfsNodeTypeChange = onOptionChange('ipfsNodeType')
   const onIpfsNodeConfigChange = onOptionChange('ipfsNodeConfig')
-  const withChromeSockets = hasChromeSocketsForTcp()
+  const braveClass = ipfsNodeType === braveNodeType ? 'brave' : ''
   return html`
     <form>
       <fieldset class="mb3 pa1 pa4-ns pa3 bg-snow-muted charcoal">
@@ -19,48 +19,51 @@ function ipfsNodeForm ({ ipfsNodeType, ipfsNodeConfig, onOptionChange }) {
               <dt>${browser.i18n.getMessage('option_ipfsNodeType_title')}</dt>
               <dd>
                 <p>${browser.i18n.getMessage('option_ipfsNodeType_external_description')}</p>
-                <p>${browser.i18n.getMessage(withChromeSockets ? 'option_ipfsNodeType_embedded_chromesockets_description' : 'option_ipfsNodeType_embedded_description')}</p>
-                <p><a class="link underline hover-aqua" href="https://docs.ipfs.io/how-to/companion-node-types/" target="_blank">
+                ${withNodeFromBrave ? html`<p>${browser.i18n.getMessage('option_ipfsNodeType_brave_description')}</p>` : null}
+                <p>${browser.i18n.getMessage('option_ipfsNodeType_embedded_description')}</p>
+                <p><a class="link underline hover-aqua" href="https://docs.ipfs.tech/how-to/companion-node-types/" target="_blank">
                   ${browser.i18n.getMessage('option_legend_readMore')}
                 </a></p>
               </dd>
             </dl>
           </label>
-          <select id="ipfsNodeType" name='ipfsNodeType' class="self-center-ns bg-white" onchange=${onIpfsNodeTypeChange}>
+          <select id="ipfsNodeType" name='ipfsNodeType' class="self-center-ns bg-white navy ${braveClass}" onchange=${onIpfsNodeTypeChange}>
             <option
               value='external'
               selected=${ipfsNodeType === 'external'}>
               ${browser.i18n.getMessage('option_ipfsNodeType_external')}
             </option>
-            ${withChromeSockets ? html`
-                <option
-                  value='embedded:chromesockets'
-                  selected=${ipfsNodeType === 'embedded:chromesockets'}>
-                  ${browser.i18n.getMessage('option_ipfsNodeType_embedded_chromesockets')} (${browser.i18n.getMessage('option_experimental')})
-                </option>
-              ` : html`
-                <option
-                  value='embedded'
-                  selected=${ipfsNodeType === 'embedded'}>
-                  ${browser.i18n.getMessage('option_ipfsNodeType_embedded')} (${browser.i18n.getMessage('option_experimental')})
-                </option>
-              `}
+            ${withNodeFromBrave
+            ? html`<option
+                  value='external:brave'
+                  selected=${ipfsNodeType === 'external:brave'}>
+                  ${browser.i18n.getMessage('option_ipfsNodeType_brave')}
+                </option>`
+              : null}
+            <option
+              value='embedded'
+              selected=${ipfsNodeType === 'embedded'}>
+              ${browser.i18n.getMessage('option_ipfsNodeType_embedded')} (${browser.i18n.getMessage('option_experimental')})
+            </option>
           </select>
         </div>
-        ${ipfsNodeType.startsWith('embedded') ? html`
-          <div class="flex-row-ns pb0-ns">
+        ${ipfsNodeType.startsWith('embedded')
+        ? html`<div class="flex-row-ns pb0-ns">
             <label for="ipfsNodeConfig">
               <dl>
                 <dt>${browser.i18n.getMessage('option_ipfsNodeConfig_title')}</dt>
                 <dd>${browser.i18n.getMessage('option_ipfsNodeConfig_description')}</dd>
               </dl>
             </label>
-            <textarea id="ipfsNodeConfig" rows="7" onchange=${onIpfsNodeConfigChange}>${ipfsNodeConfig}</textarea>
-          </div>
-        ` : null}
+            <textarea
+              class="bg-white navy self-center-ns"
+              spellcheck="false"
+              id="ipfsNodeConfig"
+              rows="${Math.min((ipfsNodeConfig.match(/\n/g) || []).length + 1, 30)}"
+              onchange=${onIpfsNodeConfigChange}>${ipfsNodeConfig}</textarea>
+          </div>`
+          : null}
       </fieldset>
     </form>
   `
 }
-
-module.exports = ipfsNodeForm
